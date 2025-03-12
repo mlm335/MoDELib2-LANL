@@ -1,6 +1,12 @@
-import sys
-sys.path.append("../../python/")
+# /opt/local/bin/python3.12 test.py
+import sys, string, os
+import numpy as np
+import matplotlib.pyplot as plt
+plt.rcParams['text.usetex'] = True
+sys.path.append("../../python")
 from modlibUtils import *
+sys.path.append("../../build/tools/pyMoDELib")
+import pyMoDELib
 
 # Create folder structure
 folders=['evl','F','inputFiles']
@@ -35,11 +41,11 @@ setInputVariable('inputFiles/'+DDfile,'crossSlipModel','0')  # crossSlipModel
 
 
 # Make a local copy of material file, and modify that copy if necessary
-materialFile='W.txt';
+materialFile='Al.txt';
 materialFileTemplate='../../Library/Materials/'+materialFile;
 print("\033[1;32mCreating  materialFile\033[0m")
 shutil.copy2(materialFileTemplate,'inputFiles/'+materialFile)
-setInputVariable('inputFiles/'+materialFile,'enabledSlipSystems','full<111>{110}')
+setInputVariable('inputFiles/'+materialFile,'enabledSlipSystems','full')
 b_SI=getValueInFile('inputFiles/'+materialFile,'b_SI')
 
 # Make a local copy of ElasticDeformation file, and modify that copy if necessary
@@ -47,35 +53,85 @@ elasticDeformatinoFile='ElasticDeformation.txt';
 elasticDeformatinoFileTemplate='../../Library/ElasticDeformation/'+elasticDeformatinoFile;
 print("\033[1;32mCreating  elasticDeformatinoFile\033[0m")
 shutil.copy2(elasticDeformatinoFileTemplate,'inputFiles/'+elasticDeformatinoFile)
-setInputVector('inputFiles/'+elasticDeformatinoFile,'ExternalStress0',np.array([0.0,0.0,0.0,0.0,0.0,0.01]),'applied stress')
+setInputVector('inputFiles/'+elasticDeformatinoFile,'ExternalStress0',np.array([0.0,0.0,0.0,0.0,0.0,0.0]),'applied stress')
 
 # Create polycrystal.txt using local material file
-meshFile='unitCube_10grains.msh';
+#meshFile='polycrystalCube_10_periodicX.msh';
+meshFile='polycrystalCube_50_periodicXY.msh';
+#meshFile='bicrystal_48.msh';
 meshFileTemplate='../../Library/Meshes/'+meshFile;
 print("\033[1;32mCreating  polycrystalFile\033[0m")
 shutil.copy2(meshFileTemplate,'inputFiles/'+meshFile)
 pf=PolyCrystalFile(materialFile);
 pf.absoluteTemperature=300;
-pf.meshFile=meshFile
-pf.boxScaling=np.array([1e-6,1e-6,1e-6])/b_SI # length of box edges in Burgers vector units
+pf.meshFile=meshFile;
+pf.boxScaling=np.array([1e-7,1e-7,1e-7])/b_SI # length of box edges in Burgers vector units
 #pf.boxScaling=np.array([2000,2000,2000]) # length of box edges in Burgers vector units
 pf.X0=np.array([0,0,0]) # Centering unitCube mesh. Mesh nodes X are mapped to x=F*(X-X0)
 pf.periodicFaceIDs=np.array([]) # no periodicity
 pf.write('inputFiles')
 
+
+N = 50
+C2G = []
+for i in range(N):
+#    R = random_output(i)
+    C2G.append(np.identity(3))
+with open('inputFiles/polycrystal.txt', 'a') as fID:
+    for i in range(N):
+        fID.write(f'C2G{i + 1} =')
+        fID.write(' '.join([f'{val:.15f}' for val in C2G[i][0]]) + '\n')
+        fID.write(' '.join([f'{val:.15f}' for val in C2G[i][1]]) + '\n')
+        fID.write(' '.join([f'{val:.15f}' for val in C2G[i][2]]) + ';\n\n')
+
 # make a local copy of microstructure file, and modify that copy if necessary
-microstructureFile1='shearLoopsDensity.txt';
-microstructureFileTemplate='../../Library/Microstructures/'+microstructureFile1;
-print("\033[1;32mCreating  microstructureFile\033[0m")
-shutil.copy2(microstructureFileTemplate,'inputFiles/'+microstructureFile1) # target filename is /dst/dir/file.ext
-setInputVariable('inputFiles/'+microstructureFile1,'targetDensity_SI','1e13')
-setInputVariable('inputFiles/'+microstructureFile1,'radiusDistributionMean_SI','1e-07')
-setInputVariable('inputFiles/'+microstructureFile1,'radiusDistributionStd_SI','0.0')
-setInputVector('inputFiles/'+microstructureFile1,'allowedGrainIDs',np.array([2]),'set of grain IDs where loops are allowed. Use -1 for all grains')
-setInputVector('inputFiles/'+microstructureFile1,'allowedSlipSystemIDs',np.array([2]),'set of slip system IDs whose Burgers vector are allowed to be the prism axis. Use -1 for all slip systems')
+simulationDir=os.path.abspath(".")
+ddBase=pyMoDELib.DislocationDynamicsBase(simulationDir)
+microstructureGenerator=pyMoDELib.MicrostructureGenerator(ddBase)
+
+spec=pyMoDELib.ShearLoopIndividualSpecification()
+spec.slipSystemIDs=np.array([0])
+spec.loopRadii=np.array([1e-8])
+spec.loopCenters=np.array([100.0,0.0,0.0])
+spec.loopSides=np.array([10])
+#microstructureGenerator.addShearLoopIndividual(spec)
+
+microstructureGenerator.writeConfigFiles(0) # write evel_0.txt (optional)
 
 
-print("\033[1;32mCreating  initialMicrostructureFile\033[0m")
-with open('inputFiles/initialMicrostructure.txt', "w") as initialMicrostructureFile:
-    initialMicrostructureFile.write('microstructureFile='+microstructureFile1+';\n')
-#    initialMicrostructureFile.write('microstructureFile='+microstructureFile2+';\n')
+defectiveCrystal=pyMoDELib.DefectiveCrystal(ddBase)
+defectiveCrystal.initializeConfiguration(microstructureGenerator.configIO)
+#defectiveCrystal.runSteps()
+
+# Exctract displacement and stress fields on the xy-plane through the center of the mesh
+mesh=ddBase.mesh
+xMax=mesh.xMax(); # vector [max(x1) max(x2) max(x3)] in the mesh
+xMin=mesh.xMin(); # vector [min(x1) min(x2) min(x3)] in the mesh
+
+n=200
+x=np.linspace(xMin[0], xMax[0], num=n) # grid x-range
+y=np.linspace(xMin[1], xMax[1], num=n) # grid x-range
+z=0.5*(xMin[2]+xMax[2])
+points = np.zeros((0, 3))
+
+for i in range(0,x.size):
+    for j in range(0,y.size):
+        pnt=np.array([x[i],y[j],z])
+        points=np.vstack((points, pnt))
+
+u=defectiveCrystal.displacement(points)*b_SI # displacement field at points
+
+# Place u1 on a grid
+u1=np.empty([n, n])
+k=0
+for i in range(0,x.size):
+    for j in range(0,y.size):
+        u1[i,j]=u[k,0]
+        k=k+1
+
+# Plot u1
+fig=plt.figure()
+plt.imshow(u1,origin='lower',cmap='jet')
+plt.colorbar()
+plt.show()
+

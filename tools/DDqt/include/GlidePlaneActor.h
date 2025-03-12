@@ -64,9 +64,10 @@ namespace model
         std::map<Eigen::Matrix<double,2,1>,int,CompareType> uniquePointsIDs;
         std::vector<Eigen::Matrix<double,2,1>> points;
         std::vector<Eigen::Matrix<int,2,1>> segments;
-        const GlidePlane<3>& glidePlane;
+        const std::shared_ptr<GlidePlane<3>>& glidePlane;
+        std::shared_ptr<GlidePlaneBase> planeBase;
         
-        SingleGlidePlaneActor(const GlidePlane<3>& glidePlane_in);
+        SingleGlidePlaneActor(const std::shared_ptr<GlidePlane<3>>& glidePlane_in);
         void appendClosedPolygon(const std::vector<Eigen::Matrix<double,2,1>>& newPoints);
         
     };
@@ -110,14 +111,17 @@ namespace model
         vtkSmartPointer<vtkActor> noiseActor;
         
         
-        QGroupBox* glidePlaneMeshGroup;
+        QGroupBox* stackingFaultGroup;
         vtkSmartPointer<vtkPolyData> glidePlanePolydata;
         vtkSmartPointer<vtkPolyDataMapper> glidePlaneMapper;
         vtkSmartPointer<vtkActor> glidePlaneActor;
         
-        vtkSmartPointer<vtkPolyData> meshPolydata;
-        vtkSmartPointer<vtkPolyDataMapper> meshMapper;
-        vtkSmartPointer<vtkActor> meshActor;
+        vtkSmartPointer<vtkLookupTable> stackingFaultLut;
+        QLineEdit* sfeMinEdit;
+        QLineEdit* sfeMaxEdit;
+        vtkSmartPointer<vtkPolyData> stackingFaultPolydata;
+        vtkSmartPointer<vtkPolyDataMapper> stackingFaultMapper;
+        vtkSmartPointer<vtkActor> stackingFaultActor;
         
 //        std::map<size_t,std::vector<vtkSmartPointer<vtkDataSetMapper>>> noiseMappers;
 //        std::map<size_t,std::vector<vtkSmartPointer<vtkActor>>> noiseActors;

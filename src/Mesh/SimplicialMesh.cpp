@@ -248,10 +248,9 @@ namespace model
                         for(const auto& face2 : region2.second->faces())
                         {
                             if(face2.second->isExternal() && face2.second!=face1.second && face1.second->convexHull().size()==face2.second->convexHull().size())
-                            {
-                                //                                std::cout<<"face pair "<<face1.second->sID<<" ("<<face1.second->convexHull().size()<<"), "<<face2.second->sID<<" ("<<face2.second->convexHull().size()<<")"<<std::endl;
+                            {// distinct parallel external faces
                                 if(abs(face1.second->outNormal().dot(face2.second->outNormal())+1.0)<FLT_EPSILON)
-                                {// distinct parallel external faces
+                                {// opposite normals
                                     const VectorDim shift(face1.second->center()-face2.second->center());
                                     std::set<const Simplex<dim,0>*> secondFaceVertices;
                                     
@@ -263,7 +262,6 @@ namespace model
                                     {
                                         for(const auto& face2Vertex : secondFaceVertices)
                                         {
-                                            //                                            std::cout<<(face1Vertex->P0-face2Vertex->P0-shift).norm()<<std::endl;
                                             if((face1Vertex->P0-face2Vertex->P0-shift).norm()<FLT_EPSILON)
                                             {
                                                 secondFaceVertices.erase(face2Vertex);
@@ -271,7 +269,6 @@ namespace model
                                             }
                                         }
                                     }
-                                    //                                    std::cout<<secondFaceVertices.size()<<std::endl;
                                     if(secondFaceVertices.size()==0)
                                     {//all vertices of face1 have been paired to a single vertex of face2 in a translation by shift
                                         const bool success(faceShiftsMap[face1.second.get()].emplace(-shift,face2.second.get()).second);
@@ -279,9 +276,6 @@ namespace model
                                         {
                                             throw std::runtime_error("Cannot insert shift for face "+std::to_string(face1.second->sID));
                                         }
-                                        //                                    std::cout<<"Detected periodic face pair "<<pair.first<<"-"<<pair.second<<std::endl;
-                                        //                                    faces()[pair.first] ->periodicFacePair=std::make_pair(-shift,faces()[pair.second].get());
-                                        //                                    faces()[pair.second]->periodicFacePair=std::make_pair( shift,faces()[pair.first ].get());
                                     }
                                 }
                             }
