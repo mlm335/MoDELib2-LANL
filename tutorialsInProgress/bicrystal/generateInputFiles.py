@@ -57,8 +57,8 @@ setInputVector('inputFiles/'+elasticDeformatinoFile,'ExternalStress0',np.array([
 
 # Create polycrystal.txt using local material file
 #meshFile='polycrystalCube_10_periodicX.msh';
-meshFile='polycrystalCube_50_periodicXY.msh';
-#meshFile='bicrystal_48.msh';
+#meshFile='polycrystalCube_50_periodicX.msh';
+meshFile='bicrystal_48.msh';
 meshFileTemplate='../../Library/Meshes/'+meshFile;
 print("\033[1;32mCreating  polycrystalFile\033[0m")
 shutil.copy2(meshFileTemplate,'inputFiles/'+meshFile)

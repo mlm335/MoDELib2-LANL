@@ -12,9 +12,6 @@
 #include <memory>
 #include <assert.h>
 #include <LatticeModule.h>
-//#include <GlidePlaneBase.h>
-//#include <LatticeVector.h>
-//#include <RationalLatticeDirection.h>
 #include <DislocationMobilityBase.h>
 #include <SlipSystem.h>
 
@@ -43,6 +40,7 @@ namespace model
         {
             std::cout<<greenColor<<"Creating full SlipSystem "<<this->sID<<defaultColor<<std::endl;
         }
+        
         std::cout<<"  s= "<<std::setprecision(15)<<std::scientific<<s.cartesian().transpose()<<std::endl;
         std::cout<<"  n= "<<std::setprecision(15)<<std::scientific<<n.cartesian().transpose()<<std::endl;
         std::cout<<"  mobility= "<<mobility->name<<std::endl;
@@ -71,8 +69,8 @@ namespace model
 
     bool SlipSystem::isSameAs(const RationalLatticeDirection<3>& s1,const ReciprocalLatticeDirection<3>& n1)
     {
-        if(   ((s-s1).squaredNorm()==0 && (n-n1).squaredNorm()==0)
-           || ((s+s1).squaredNorm()==0 && (n+n1).squaredNorm()==0)
+        if(   ((s-s1).squaredNorm()==0 && (n-n1).base().squaredNorm()==0)
+           || ((s+s1).squaredNorm()==0 && (n+n1).base().squaredNorm()==0)
            )
         {
             return true;

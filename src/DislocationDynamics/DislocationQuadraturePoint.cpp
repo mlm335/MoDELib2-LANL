@@ -472,7 +472,7 @@ namespace model
                         const auto sourceLoop(weakSourceLoop.second.lock());
                         if(sourceLoop->slipSystem())
                         {
-                            if(slipSystem.n==sourceLoop->slipSystem()->n) // "opposite" slip systems have same normal and opposite slip directions, so this is ok
+                            if(slipSystem.n.base()==sourceLoop->slipSystem()->n.base()) // "opposite" slip systems have same normal and opposite slip directions, so this is ok
                             {// same glide plane family
                                 
                                 for(auto& qPoint : quadraturePoints())

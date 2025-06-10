@@ -57,7 +57,7 @@ namespace model
         double _slippedAreaRate;
         VectorDim _rightHandedUnitNormal;
         VectorDim _rightHandedUnitNormal_old;
-        ReciprocalLatticeDirectionType _rightHandedNormal;
+        std::unique_ptr<ReciprocalLatticeDirectionType> _rightHandedNormal;
         std::shared_ptr<SlipSystem> _slipSystem;
 
     public:

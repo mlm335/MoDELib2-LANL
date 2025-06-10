@@ -54,7 +54,6 @@ if compute:
     setInputVariable('inputFiles/'+materialFile,'enabledSlipSystems','Shockley')
     setInputVariable('inputFiles/'+materialFile,'glidePlaneNoise','none')
     b_SI=getValueInFile('inputFiles/'+materialFile,'b_SI')
-    #h_SI=b_SI/np.sqrt(2.0/3.0) # plane heigh in BCC
 
     # Create polycrystal.txt using local material file
     meshFile='unitCube24.msh';

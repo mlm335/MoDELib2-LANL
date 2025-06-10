@@ -40,6 +40,11 @@ struct PeriodicPatchBoundary;
 template<int dim>
 class PeriodicGlidePlane;
 
+//    template<int dim>
+//    class PeriodicPlaneEdge;
+
+/**********************************************************************/
+/**********************************************************************/
 template<int dim>
 struct PeriodicPlaneEdge
 {
@@ -51,12 +56,14 @@ struct PeriodicPlaneEdge
     const std::shared_ptr<const MeshBoundarySegment<dim>> meshIntersection;
     const short int edgeID;
     const VectorDim deltaShift;
-    const bool isPeriodicEdge;
     
     PeriodicPlaneEdge<dim>* next;
     PeriodicPlaneEdge<dim>* prev;
     PeriodicPlaneEdge<dim>* twin;
-        
+    
+    //static VectorDim getDeltaShift(const PeriodicPlanePatch<dim>* const patch,const std::shared_ptr<const MeshBoundarySegment<dim>> meshIntersection);
+    
+    /**********************************************************************/
     PeriodicPlaneEdge(const PeriodicPlanePatch<dim>* const patch_in,
                       const std::shared_ptr<PeriodicPlaneNode<dim>>& source_in,
                       const std::shared_ptr<PeriodicPlaneNode<dim>>& sink_in,
@@ -64,9 +71,12 @@ struct PeriodicPlaneEdge
                       const short int&)
     ;
     ~PeriodicPlaneEdge();
+    
     std::string tag() const;
 };
 
+/**********************************************************************/
+/**********************************************************************/
 template<int dim>
 struct NodalConnectivity
 {
@@ -81,8 +91,11 @@ struct NodalConnectivity
     {
         
     }
+    
 };
 
+/**********************************************************************/
+/**********************************************************************/
 template<int dim>
 class PeriodicPlaneNode : public StaticID<PeriodicPlaneNode<dim>>
 /*                     */,public Eigen::Matrix<double,dim-1,1>
@@ -104,6 +117,7 @@ private:
     NodalConnectivityContainerType _patchConnectivities;
     NodalConnectivityContainerType _neighborConnectivities;
     
+    
 public:
     
     PeriodicPlaneNode(PeriodicPatchBoundary<dim>* const,const VectorLowerDim& pos);
@@ -117,6 +131,8 @@ public:
     InOutEdgeContainerType outEdges() const;
 };
 
+/**********************************************************************/
+/**********************************************************************/
 template<int dim>
 struct PeriodicPlanePatch : public StaticID<PeriodicPlanePatch<dim>>
 /*                      */, private std::vector<std::shared_ptr<PeriodicPlaneEdge<dim>>>
@@ -141,6 +157,10 @@ struct PeriodicPlanePatch : public StaticID<PeriodicPlanePatch<dim>>
     int contains(const VectorLowerDim& test) const;
 };
 
+
+
+
+
 template<int dim>
 struct PeriodicPatchBoundary : public StaticID<PeriodicPatchBoundary<dim>>
 /*                          */,public KeyConstructableWeakPtrFactory<PeriodicPatchBoundary<dim>,PeriodicPlaneNode<dim>,typename PeriodicPlaneNode<dim>::CompareType>
@@ -161,8 +181,13 @@ struct PeriodicPatchBoundary : public StaticID<PeriodicPatchBoundary<dim>>
     BoundariesContainerType _innerBoundaries;
     GlidePlaneFactory<dim>& glidePlaneFactory;
     const std::shared_ptr<GlidePlane<dim>> referencePlane;
-
+    //        const MatrixDim L2G;
+    
+    
+    //        static MatrixDim getL2G(VectorDim z);
     PeriodicPatchBoundary(GlidePlaneFactory<dim>&, const std::shared_ptr<GlidePlane<dim>>& referencePlane_in);
+    //        GlidePlaneKey<dim> getGlidePlaneKey(const VectorDim& shift);
+    //        std::shared_ptr<GlidePlane<dim>> getGlidePlane(const VectorDim& shift);
     void createNewBoundary(const PeriodicPlaneEdge<dim>* currentEdge,UntwinnedEdgeContainerType& untwinnedCopy);
     void updateBoundaries();
     BoundariesContainerType& outerBoundaries();
@@ -188,12 +213,22 @@ struct PeriodicPatchBoundary : public StaticID<PeriodicPatchBoundary<dim>>
     std::shared_ptr<GlidePlane<dim>> getGlidePlane(const VectorDim& shift);
     const PatchContainerType& patches() const;
     PatchContainerType& patches();
+    
+    
 };
 
+
+
+
+/**********************************************************************/
+/**********************************************************************/
+// ,
 template<int dim>
 class PeriodicGlidePlane : public PeriodicPatchBoundary<dim>
+//    /*                      */,public KeyConstructableSharedPtrFactory<PeriodicGlidePlane<dim>,PeriodicPlanePatch<dim>> // container of patches
 {
-        
+    
+    
 public:
     
     typedef Eigen::Matrix<double,dim,dim> MatrixDim;
@@ -215,15 +250,21 @@ public:
     
     PeriodicGlidePlane(PeriodicGlidePlaneFactoryType* const pgpf,const KeyType& key_in);
     void print();
+    //        VectorDim getGlidePlaneShiftfromReferencePlane(const GlidePlane<dim> *gp) const;
     
     template<typename T>
     std::vector<std::tuple<VectorLowerDim,VectorDim,std::pair<short int,short  int>,std::map<VectorDim,std::set<std::pair<short int,short  int>>,CompareVectorsByComponent<double,dim,float>>,size_t ,const T* const>> polygonPatchIntersection(const std::vector<std::pair<VectorDim,const T* const>>& polyPoints,const bool& intersectInternalNodes=false);
     template<typename T>
     std::vector<std::tuple<VectorLowerDim,VectorDim,std::pair<short int,short  int>,std::map<VectorDim,std::set<std::pair<short int,short  int>>,CompareVectorsByComponent<double,dim,float>>,size_t ,const T* const>> polygonPatchIntersection(const std::vector<std::pair<VectorLowerDim,const T* const>>& polyPoints,const bool& intersectInternalNodes=false);
     
+    
     std::pair<VectorDim,bool> findPatch(const VectorLowerDim&,const VectorDim&);
+    
     std::vector<std::shared_ptr<PeriodicPlanePatch<dim>>> filledPatches(const std::vector<VectorDim>& patchShifts);
+    
 };
+
+
 
 template<int dim>
 struct PeriodicPlanePatchIO
@@ -236,6 +277,9 @@ struct PeriodicPlanePatchIO
     PeriodicPlanePatchIO();
     PeriodicPlanePatchIO(const PeriodicPlanePatch<dim>& patch);
     PeriodicPlanePatchIO(std::stringstream& ss);
+    //        template <class T>
+    //        friend T& operator << (T& os, const PeriodicPlanePatchIO<dim>& ds);
+    
 };
 
 template <int dim,class T>
@@ -265,7 +309,7 @@ template<typename T>
 std::vector<std::tuple<typename PeriodicGlidePlane<dim>::VectorLowerDim,typename PeriodicGlidePlane<dim>::VectorDim,std::pair<short int,short  int>,std::map<typename PeriodicGlidePlane<dim>::VectorDim,std::set<std::pair<short int,short  int>>,CompareVectorsByComponent<double,dim,float>>,size_t, const T* const>> PeriodicGlidePlane<dim>::polygonPatchIntersection(const std::vector<std::pair<VectorLowerDim, const T* const>>& polyPoints, const bool& intersectInternalNodes)
 {
     std::vector<std::tuple<typename PeriodicGlidePlane<dim>::VectorLowerDim,typename PeriodicGlidePlane<dim>::VectorDim,std::pair<short int,short  int>, std::map<VectorDim,std::set<std::pair<short int,short  int>>,CompareVectorsByComponent<double,dim,float>> ,size_t,const T* const>> ppiPPedges; // 2dPos,shift,std::pair<edgeIDs>,LoopNodeType*
-    // 2dPos,shift,std::pair<edgeIDs>,edgeMap,edgesStillRemaining,LoopNodeType*
+    // 2dPos,shift,std::pair<edgeIDs>,std::set<std::pair<edgeIDs>>,size_t,LoopNodeType*
     //This is done to take care of all the edges that the two nodes are intersecting, size_t indicates the remaining intersection
     if (polyPoints.size())
     {
@@ -285,8 +329,7 @@ std::vector<std::tuple<typename PeriodicGlidePlane<dim>::VectorLowerDim,typename
         }
         if(startNodeID==-1)
         {
-            return ppiPPedges;
-//            throw std::runtime_error("polygonPatchIntersection failed to find initial patch.");
+            throw std::runtime_error("polygonPatchIntersection failed to find initial patch.");
         }
 //        auto lastPatch(patchBoundary.getPatch(findPatch(polyPoints[startNodeID].first, VectorDim::Zero()).first));
 
@@ -323,15 +366,47 @@ std::vector<std::tuple<typename PeriodicGlidePlane<dim>::VectorLowerDim,typename
                     for (const auto &bndEdge : patchBoundary.untwinnedEdges())
                     { // loop over outer boundaries and holes
                         SegmentSegmentDistance<dim - 1> ssd(startPoint.first, endPoint.first, *bndEdge->source, *bndEdge->sink);
+                        // std::cout << " Determining intersection between " << startPoint.second->tag() << " and " << endPoint.second->tag()<<" dMin "<<ssd.dMin <<" den is "<< std::flush;
+                        // const double alignemntAngle(((endPoint.first - startPoint.first).normalized()).dot((*bndEdge->sink - *bndEdge->source).normalized()));
+                        // const double maxAngleAlignment(cos(1.0e-4 * M_PI / 180.0)); // Alignment angle is fixed to 10 degrees
+                        
                         if (ssd.isIntersecting(FLT_EPSILON))
                         { // intersection with current boundary found
+                            // std::cout << std::setprecision(15) << " Intersection found " << ssd.t << " " << ssd.u << std::endl;
                             crossdEdges[bndEdge->patch].emplace_back(0.5 * (ssd.x0 + ssd.x1), bndEdge);
                         }
+                        //Changed to allow for the intersection of the near parallel segment with the boundary
+                        // else
+                        // {
+                        //     if (startPoint.second && endPoint.second)
+                        //     {
+                        //         // Check the alignment of the links with the bndEdge Source
+                        //         //                        std::cout<<"Coming here to check for 3D intersection"<<std::endl;
+                        //         const double maxAngleAlignment(cos(5.0 * M_PI / 180.0)); //Alignment angle is fixed to 10 degrees
+                        //         // std::cout<<" Alignemnt Angle =>maxAngleAlignment"<<alignemntAngle<<" "<<maxAngleAlignment<<" for nodes "<<startPoint.second->tag()
+                        //         // <<"=>"<<endPoint.second->tag()<<" ssdDmin "<<ssd.dMin<<std::endl;
+                        
+                        //         if (fabs(alignemntAngle) > maxAngleAlignment && ssd.dMin < 1000*FLT_EPSILON) //If very close to the boundary and aligned only then check in 3D
+                        //         {
+                        //             //The value of 1000 is determined by trial and error
+                        //             //Determine the patches of startPoint and endPoint
+                        //             if (startPoint.second->periodicPlanePatch() != endPoint.second->periodicPlanePatch())
+                        //             {
+                        //                 //The two loop nodes belong to different patches, a node is needed to be inserted on the edge
+                        //                 //This is only valid with the if for the alignment angle and the ssd.dMin
+                        //                 crossdEdges[bndEdge->patch].emplace_back(0.5 * (ssd.x0 + ssd.x1), bndEdge);
+                        //             }
+                        //         }
+                        //     }
+                        // }
+                        
                     }
                     
                     if (crossdEdges.size() == 0)
                     { // No untwinned edges have been crossed, break and move to next pair of polyPoints
                         ppi.emplace_back(endPoint.first, lastPatch->shift, std::make_pair(-1,-1), endPoint.second);
+                        // edgeMaps.emplace(VectorDim::Zero(),std::make_pair(-1,-1));
+                        //                    printIntersections(ppi,currentPatches,lastPatch,removeMe,patchBoundary.untwinnedEdges());
                         break;
                     }
                     else
@@ -340,7 +415,7 @@ std::vector<std::tuple<typename PeriodicGlidePlane<dim>::VectorLowerDim,typename
                         { // loop over crossed patches
                             assert((pair.second.size()>0 && pair.second.size()<=2) && "At max two periodic plane edges can be intersected (2D geometry constraint)");
                             if (pair.second.size()==2 && (pair.second.begin()->first-pair.second.rbegin()->first).norm()<FLT_EPSILON)
-                            {// Two intersectoins at the same position (intersectoin at corner)
+                            {
                                 // pair.second.size() cannot be 4 even for diagonally opposite ends since we are looping over the untwineed edges for the intersection.
                                 //Need to check that two subsequen links are at the same 2D position
                                 
@@ -355,6 +430,9 @@ std::vector<std::tuple<typename PeriodicGlidePlane<dim>::VectorLowerDim,typename
                                 {
                                     std::set<std::pair<short int,short  int>> edgeSet;
                                     edgeSet.insert(std::make_pair(pair.second.begin()->second->edgeID, pair.second.rbegin()->second->edgeID));
+                                    // edgeMaps.emplace(std::piecewise_construct,
+                                    //                 std::forward_as_tuple(pair.first->shift),
+                                    //                 std::forward_as_tuple(pair.second.begin()->second->edgeID, pair.second.rbegin()->second->edgeID));
                                     edgeMaps.emplace(pair.first->shift,edgeSet);
                                 }
                                 else
@@ -362,12 +440,12 @@ std::vector<std::tuple<typename PeriodicGlidePlane<dim>::VectorLowerDim,typename
                                     edgeSetIter1->second.insert(std::make_pair(pair.second.begin()->second->edgeID, pair.second.rbegin()->second->edgeID));
                                 }
                                 
+                                const VectorDim localShift(pair.first->shift + pair.second.begin()->second->deltaShift+pair.second.rbegin()->second->deltaShift);
                                 //here three patches are needed to be inserted... two at periodically opposite faces and one at diagonally opposite faces
                                 lastPatch = patchBoundary.patches().getFromKey(pair.first->shift + pair.second.begin()->second->deltaShift);
                                 currentPatches.push_back(lastPatch); // keep patches alive durin current line segment search
                                 lastPatch = patchBoundary.patches().getFromKey(pair.first->shift + pair.second.rbegin()->second->deltaShift);
                                 currentPatches.push_back(lastPatch); // keep patches alive durin current line segment search
-                                const VectorDim localShift(pair.first->shift + pair.second.begin()->second->deltaShift+pair.second.rbegin()->second->deltaShift);
                                 lastPatch = patchBoundary.patches().getFromKey(localShift);
                                 currentPatches.push_back(lastPatch); // keep patches alive durin current line segment search
                                 assert(pair.second.begin()->second->twin); //Now the twin for both the edges must exist
@@ -409,6 +487,9 @@ std::vector<std::tuple<typename PeriodicGlidePlane<dim>::VectorLowerDim,typename
                                 {
                                     std::set<std::pair<short int,short  int>> edgeSet;
                                     edgeSet.insert(std::make_pair(beginTwinEdgeID, rbeginTwinEdgeID));
+                                    // edgeMaps.emplace(std::piecewise_construct,
+                                    //                 std::forward_as_tuple(localShift),
+                                    //                 std::forward_as_tuple(pair.second.begin()->second->twin->edgeID, pair.second.rbegin()->second->twin->edgeID));
                                     edgeMaps.emplace(localShift,edgeSet);
                                 }
                                 else
@@ -417,9 +498,9 @@ std::vector<std::tuple<typename PeriodicGlidePlane<dim>::VectorLowerDim,typename
                                 }
                             }
                             else
-                            {// Intersections not a corner
+                            {
                                 for (const auto &edge : pair.second)
-                                { // loop over crossed edges. edge.first=2D position, edge.second= edge ptr
+                                { // loop over crossed edges
                                     ppi.emplace_back(edge.first, pair.first->shift, std::make_pair(edge.second->edgeID,-1), nullptr);
                                     edgeVector.push_back(std::make_pair(edge.second->edgeID,-1));
                                     
@@ -428,12 +509,16 @@ std::vector<std::tuple<typename PeriodicGlidePlane<dim>::VectorLowerDim,typename
                                     {
                                         std::set<std::pair<short int,short  int>> edgeSet;
                                         edgeSet.insert(std::make_pair(edge.second->edgeID,-1));
+                                        // edgeMaps.emplace(std::piecewise_construct,
+                                        //             std::forward_as_tuple(pair.first->shift),
+                                        //             std::forward_as_tuple(edge.second->edgeID,-1));
                                         edgeMaps.emplace(pair.first->shift, edgeSet);
                                     }
                                     else
                                     {
                                         edgeSetIter1->second.insert(std::make_pair(edge.second->edgeID,-1));
                                     }
+                                    //  shift += edge.second->deltaShift;
                                     const VectorDim localShift(pair.first->shift + edge.second->deltaShift);
                                     // Insert patches corresponding to the individual intersections as well
                                     lastPatch = patchBoundary.patches().getFromKey(localShift);
@@ -447,6 +532,10 @@ std::vector<std::tuple<typename PeriodicGlidePlane<dim>::VectorLowerDim,typename
                                     {
                                         std::set<std::pair<short int,short  int>> edgeSet;
                                         edgeSet.insert(std::make_pair(edge.second->twin->edgeID,-1));
+                                        // edgeMaps.emplace(std::piecewise_construct,
+                                        //             std::forward_as_tuple(edge.second->twin->patch->shift),
+                                        //             std::forward_as_tuple(edge.second->twin->edgeID,-1));
+                                        // edgeMaps.emplace(edge.second->twin->patch->shift, std::make_pair(edge.second->twin->edgeID,-1));
                                         edgeMaps.emplace(edge.second->twin->patch->shift, edgeSet);
                                     }
                                     else
@@ -459,7 +548,9 @@ std::vector<std::tuple<typename PeriodicGlidePlane<dim>::VectorLowerDim,typename
                         if (lastPatch->contains(endPoint.first))
                         {
                             ppi.emplace_back(endPoint.first, lastPatch->shift, std::make_pair(-1,-1), endPoint.second);
-                             break;
+                            // edgeMaps.emplace(VectorDim::Zero(), std::make_pair(-1, -1));
+                            //                        printIntersections(ppi,currentPatches,lastPatch,removeMe,patchBoundary.untwinnedEdges());
+                            break;
                         }
                     }
                 }
@@ -473,6 +564,13 @@ std::vector<std::tuple<typename PeriodicGlidePlane<dim>::VectorLowerDim,typename
             size_t crossCount=0;
             for (const auto& ppiIter : ppi )
             {
+                // //LoopNode* is the last
+                // if (edgeVector.size()==0)
+                // {
+                //     ppiPPedges.emplace_back(std::get<0>(ppiIter),std::get<1>(ppiIter),std::get<2>(ppiIter),edgeMaps,0,std::get<3>(ppiIter));
+                // }
+                // else
+                // {
                 size_t edgesStillRemaining(0);
                 if (std::get<3>(ppiIter) == nullptr)
                 {
@@ -481,6 +579,7 @@ std::vector<std::tuple<typename PeriodicGlidePlane<dim>::VectorLowerDim,typename
                     edgesStillRemaining = edgeVector.size() - crossCount;
                 }
                 ppiPPedges.emplace_back(std::get<0>(ppiIter), std::get<1>(ppiIter), std::get<2>(ppiIter), edgeMaps, edgesStillRemaining, std::get<3>(ppiIter));
+                // }
             }
             if (edgeVector.size() != 0)
             {
@@ -491,8 +590,37 @@ std::vector<std::tuple<typename PeriodicGlidePlane<dim>::VectorLowerDim,typename
                 }
                 assert((edgeVector.size() - crossCount) == 0 && "No edges should be remaining after completion of polygonPatchIntersection");
             }
+            // if (true)
+            // {
+            //     std::ofstream edgesFile("Debug/edges_"+ std::to_string(runID) + "_" + std::to_string(loopID) + ".txt", std::ofstream::out | std::ofstream::app);
+            //     std::ofstream pointsFile("Debug/points_"+ std::to_string(runID) + "_" + std::to_string(loopID) + ".txt",std::ofstream::out | std::ofstream::app);
+            
+            //     for (const auto &edge : lastPatch->edges())
+            //     {
+            //         edgesFile << edge->source->sID << " " << edge->sink->sID << " " << lastPatch->sID << std::endl;
+            //         pointsFile << "    " << edge->source->sID << " " << (*edge->source.get()).transpose() << std::endl;
+            //     }
+            //     edgesFile.close();
+            //     pointsFile.close();
+            // }
         }
+        
+        // if (true)
+        // {
+        
+        //     std::ofstream polyFile("Debug/poly_"+std::to_string(runID) + "_" + std::to_string(loopID) + ".txt");
+        //     //                    std::ofstream poly3DFile("poly3D.txt");
+        //     for (const auto &tup : ppi)
+        //     {
+        //         //                        if(!node.second.expired())
+        //         //                        {
+        //         polyFile << "    " << std::get<0>(tup).transpose() << std::endl;
+        //         //                        }
+        //     }
+        //     polyFile.close();
+        // }
     }
+    
     
     return ppiPPedges;
 }

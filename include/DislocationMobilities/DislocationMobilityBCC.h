@@ -40,7 +40,6 @@ namespace model
         const double a3;
         const double kB;
         
-        /**********************************************************************/
         DislocationMobilityBCC(const double& b_SI,
                             const double& mu_SI,
                             const double& cs_SI,
@@ -56,16 +55,11 @@ namespace model
                             const double& a1_in,
                             const double& a2_in,
                             const double& a3_in) ;
-
         
-        /**********************************************************************/
         DislocationMobilityBCC(const PolycrystallineMaterialBase& material) ;
         
-
-        /**********************************************************************/
         static double sigmoid(const double & x);
         
-        /**********************************************************************/
         double velocity(const MatrixDim& S,
                         const VectorDim& b,
                         const VectorDim& xi,
@@ -74,6 +68,12 @@ namespace model
                         const double& dL,
                         const double& dt,
                         const std::shared_ptr<StochasticForceGenerator>& sfg) ;
+        
+        double velocity(const MatrixDim& S,
+                        const VectorDim& b,
+                        const VectorDim& xi,
+                        const VectorDim& n,
+                        const double& T) ;
         
     };
     

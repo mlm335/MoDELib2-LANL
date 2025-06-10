@@ -73,9 +73,9 @@ namespace model
                 const double pkGlide=std::fabs((pki-pki.dot(slipSystem->unitNormal)*slipSystem->unitNormal).norm());
 
                 std::map<double,int> ssMap;
-                for(size_t s=0;s<grain.singleCrystal->slipSystems().size();++s)
+                for(size_t s=0;s<grain.slipSystems().size();++s)
                 {
-                    const auto& crossSlipSystem(grain.singleCrystal->slipSystems()[s]);
+                    const auto& crossSlipSystem(grain.slipSystems().at(s));
                     if((loop->flow()-crossSlipSystem->s).squaredNorm()==0)
                     {
                         const double pkCross=std::fabs((pki-pki.dot(crossSlipSystem->unitNormal)*crossSlipSystem->unitNormal).norm());
@@ -85,7 +85,7 @@ namespace model
                 
                 if(ssMap.size())
                 {
-                    const auto& crossSlipSystem(grain.singleCrystal->slipSystems()[ssMap.rbegin()->second]);
+                    const auto& crossSlipSystem(grain.slipSystems().at(ssMap.rbegin()->second));
                     if(slipSystem->unitNormal.cross(crossSlipSystem->unitNormal).squaredNorm()>FLT_EPSILON
                        && ssMap.rbegin()->first>1.1*pkGlide)
                     {// highest glide PK-force is not on current slip system
@@ -253,9 +253,9 @@ namespace model
         {
             const auto& grain(**link.grains().begin());
             std::map<double,int> ssMap;
-            for(size_t s=0;s<grain.singleCrystal->slipSystems().size();++s)
+            for(size_t s=0;s<grain.slipSystems().size();++s)
             {
-                const auto& slipSystem(grain.singleCrystal->slipSystems()[s]);
+                const auto& slipSystem(grain.slipSystems().at(s));
                 if(((*link.loopLinks().begin())->loop->slipSystem()->s-slipSystem->s).squaredNorm()==0
                    && slipSystem->unitNormal.cross(link.glidePlaneNormal()).squaredNorm()>FLT_EPSILON) // not current slip system
                 {

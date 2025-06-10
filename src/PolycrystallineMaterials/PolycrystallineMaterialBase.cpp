@@ -63,6 +63,18 @@ namespace model
             std::cout<<magentaColor<<"  units of speed (shear-wave speed): cs="<<cs_SI<<" [m/s]"<<std::endl;
             std::cout<<magentaColor<<"  units of time: b/cs="<<b_SI/cs_SI<<" [sec]"<<defaultColor<<std::endl;
 
+            std::cout<<"Enabled SlipSystems"<<std::endl;
+            for(const auto& str : enabledSlipSystems)
+            {
+                std::cout<<str<<std::endl;
+            }
+            
+            std::cout<<"Enabled SecondPhases"<<std::endl;
+            for(const auto& str : enabledSecondPhases)
+            {
+                std::cout<<str<<std::endl;
+            }
+            
         }
         
 

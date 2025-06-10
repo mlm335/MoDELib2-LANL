@@ -57,7 +57,7 @@ pf=PolyCrystalFile(materialFile);
 pf.absoluteTemperature=300;
 pf.meshFile=meshFile
 #pf.alignToSlipSystem0=1
-pf.boxEdges=np.array([[1,1,0],[0,1,0],[0,0,1]]) # i-throw is the direction of i-th box edge
+#pf.boxEdges=np.array([[1,1,0],[0,1,0],[0,0,1]]) # i-throw is the direction of i-th box edge
 pf.boxScaling=np.array([1e-6,1e-6,1e-6])/b_SI # length of box edges in Burgers vector units
 
 #pf.boxScaling=np.array([2000,2000,2000]) # must be a vector of integers
@@ -66,6 +66,17 @@ pf.periodicFaceIDs=np.array([-1])
 pf.write('inputFiles')
 
 # make a local copy of microstructure file, and modify that copy if necessary
+#microstructureFile1='shearLoopsDensity.txt';
+#microstructureFileTemplate='../../Library/Microstructures/'+microstructureFile1;
+#print("\033[1;32mCreating  microstructureFile\033[0m")
+#shutil.copy2(microstructureFileTemplate,'inputFiles/'+microstructureFile1) # target filename is /dst/dir/file.ext
+#setInputVariable('inputFiles/'+microstructureFile1,'targetDensity_SI','1e11')
+#setInputVariable('inputFiles/'+microstructureFile1,'radiusDistributionMean_SI','1e-05')
+#setInputVariable('inputFiles/'+microstructureFile1,'radiusDistributionStd_SI','0.0')
+#setInputVariable('inputFiles/'+microstructureFile1,'numberOfSides','4')
+#setInputVector('inputFiles/'+microstructureFile1,'allowedGrainIDs',np.array([-1]),'set of grain IDs where loops are allowed. Use -1 for all grains')
+#setInputVector('inputFiles/'+microstructureFile1,'allowedSlipSystemIDs',np.array([-1]),'set of slip system IDs whose Burgers vector are allowed to be the prism axis. Use -1 for all slip systems')
+
 microstructureFile1='prismaticLoopsDensity.txt';
 microstructureFileTemplate='../../Library/Microstructures/'+microstructureFile1;
 print("\033[1;32mCreating  microstructureFile\033[0m")
@@ -75,6 +86,7 @@ setInputVariable('inputFiles/'+microstructureFile1,'radiusDistributionMean_SI','
 setInputVariable('inputFiles/'+microstructureFile1,'radiusDistributionStd_SI','0.0')
 setInputVector('inputFiles/'+microstructureFile1,'allowedGrainIDs',np.array([-1]),'set of grain IDs where loops are allowed. Use -1 for all grains')
 setInputVector('inputFiles/'+microstructureFile1,'allowedSlipSystemIDs',np.array([-1]),'set of slip system IDs whose Burgers vector are allowed to be the prism axis. Use -1 for all slip systems')
+
 
 print("\033[1;32mCreating  initialMicrostructureFile\033[0m")
 with open('inputFiles/initialMicrostructure.txt', "w") as initialMicrostructureFile:

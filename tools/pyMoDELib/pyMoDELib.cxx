@@ -30,13 +30,17 @@
 #include <DefectiveCrystalParameters.h>
 #include <SimplicialMesh.h>
 #include <PolycrystallineMaterialBase.h>
+#include <BCClattice.h>
+#include <FCClattice.h>
+#include <HEXlattice.h>
 #include <Polycrystal.h>
 #include <MicrostructureBase.h>
 #include <MicrostructureContainer.h>
 #include <DislocationDynamicsBase.h>
 #include <DefectiveCrystal.h>
 #include <MicrostructureGenerator.h>
-
+#include <DislocationMobilityBCC.h>
+#include <GlidePlaneNoiseBase.h>
 
 using namespace model;
 // https://pybind11.readthedocs.io/en/stable/advanced/cast/eigen.html
@@ -55,11 +59,84 @@ typedef typename TypeTraits<DislocationNetworkType>::NetworkNodeType NetworkNode
 PYBIND11_MAKE_OPAQUE(std::map<typename LoopNodeType::KeyType,const std::weak_ptr<LoopNodeType>>);
 PYBIND11_MAKE_OPAQUE(std::map<typename LoopType::KeyType,const std::weak_ptr<LoopType>>);
 PYBIND11_MAKE_OPAQUE(std::vector<MeshedDislocationLoop>);
+PYBIND11_MAKE_OPAQUE(GlidePlaneNoiseBase<1>); // opaque: pybind11 is not going to try to guess the data type for python
+PYBIND11_MAKE_OPAQUE(GlidePlaneNoiseBase<2>);
+
+//PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<GlidePlaneBase>>);
+//PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<SlipSystem>>);
+//PYBIND11_MAKE_OPAQUE(std::map<size_t,std::shared_ptr<SecondPhase<3>>>);
+
+PYBIND11_MAKE_OPAQUE(typename TypeTraits<SingleCrystalBase<3>>::PlaneNormalContainerType);
+PYBIND11_MAKE_OPAQUE(typename TypeTraits<SingleCrystalBase<3>>::SlipSystemContainerType);
+PYBIND11_MAKE_OPAQUE(typename TypeTraits<SingleCrystalBase<3>>::SecondPhaseContainerType);
+//PYBIND11_MAKE_OPAQUE(std::map<const GlidePlaneBase*,std::shared_ptr<GammaSurface>>);
+
 
 PYBIND11_MODULE(pyMoDELib,m)
 {
     namespace py=pybind11;
 
+    py::class_<GlidePlaneNoiseBase<1>, std::shared_ptr<GlidePlaneNoiseBase<1>>>(m, "GlidePlaneNoiseBase1")
+      .def(py::init<const std::string&, const int&,
+                    const NoiseTraitsBase::GridSizeType&,
+                    const NoiseTraitsBase::GridSpacingType&,
+                    const Eigen::Matrix<double,2,2>&>())
+      .def("averageNoiseCorrelation", &GlidePlaneNoiseBase<1>::averageNoiseCorrelation)
+      .def("sampleAverageNoise", &GlidePlaneNoiseBase<1>::sampleAverageNoise)
+    ;
+
+    // Bind MDStackingFaultNoise
+    py::class_<MDStackingFaultNoise, GlidePlaneNoiseBase<1>, std::shared_ptr<MDStackingFaultNoise>>(m, "MDStackingFaultNoise")
+      .def(py::init<
+          const model::PolycrystallineMaterialBase&,
+          const std::string&,
+          const std::string&,
+          const int&,
+          const model::NoiseTraitsBase::GridSizeType&,
+          const model::NoiseTraitsBase::GridSpacingType&,
+          const Eigen::Matrix<double, 2, 2>&
+      >())
+    ;
+    
+    py::class_<GlidePlaneNoiseBase<2>, std::shared_ptr<GlidePlaneNoiseBase<2>>>(m, "GlidePlaneNoiseBase2")
+      .def(py::init<const std::string&, const int&,
+                    const NoiseTraitsBase::GridSizeType&,
+                    const NoiseTraitsBase::GridSpacingType&,
+                    const Eigen::Matrix<double,2,2>&>())
+      .def("averageNoiseCorrelation", &GlidePlaneNoiseBase<2>::averageNoiseCorrelation)
+      .def("sampleAverageNoise", &GlidePlaneNoiseBase<2>::sampleAverageNoise)
+    ;
+
+    // Bind MDSolidSolutionNoise
+    py::class_<MDSolidSolutionNoise, GlidePlaneNoiseBase<2>, std::shared_ptr<MDSolidSolutionNoise>>(m, "MDSolidSolutionNoise")
+      .def(py::init<
+          const model::PolycrystallineMaterialBase&,
+          const std::string&,
+          const std::string&,
+          const std::string&,
+          const int&,
+          const model::NoiseTraitsBase::GridSizeType&,
+          const model::NoiseTraitsBase::GridSpacingType&,
+          const Eigen::Matrix<double, 2, 2>&,
+          const double&
+      >())
+    ;
+
+    // Bind AnalyticalSolidSolutionNoise
+    py::class_<AnalyticalSolidSolutionNoise, GlidePlaneNoiseBase<2>,std::shared_ptr<AnalyticalSolidSolutionNoise>>(m, "AnalyticalSolidSolutionNoise")
+      // Constructor
+      .def(py::init<
+          const std::string&,
+          const int&,
+          const model::NoiseTraitsBase::GridSizeType&,
+          const model::NoiseTraitsBase::GridSpacingType&,
+          const Eigen::Matrix<double, 2, 2>&,
+          const double&,
+          const double&,
+          const double&
+      >())
+    ;
+    
     py::class_<DDtraitsIO>(m,"DDtraitsIO")
         .def(py::init<const std::string&>())
         .def_readonly("simulationFolder", &DDtraitsIO::simulationFolder)
@@ -114,13 +191,106 @@ PYBIND11_MODULE(pyMoDELib,m)
 
     py::class_<PolycrystallineMaterialBase>(m,"PolycrystallineMaterialBase")
         .def(py::init<const std::string&,const double&>())
+        .def_readonly("T", &PolycrystallineMaterialBase::T)
+        .def_readonly("mu_SI", &PolycrystallineMaterialBase::mu_SI)
+        .def_readonly("nu", &PolycrystallineMaterialBase::nu)
+        .def_readonly("rho_SI", &PolycrystallineMaterialBase::rho_SI)
+        .def_readonly("cs_SI", &PolycrystallineMaterialBase::cs_SI)
+        .def_readonly("b_SI", &PolycrystallineMaterialBase::b_SI)
+        .def_readonly("materialName", &PolycrystallineMaterialBase::materialName)
+        .def_readonly("materialFile", &PolycrystallineMaterialBase::materialFile)
     ;
-
+    
+//    py::class_<BCClattice<3>>(m,"BCClattice")
+//        .def(py::init<const MatrixDim&,const PolycrystallineMaterialBase&>())
+//    ;
+//    
+//    py::class_<FCClattice<3>>(m,"FCClattice")
+//        .def(py::init<const MatrixDim&,const PolycrystallineMaterialBase&>())
+//    ;
+//    
+//    py::class_<HEXlattice<3>>(m,"HEXlattice")
+//        .def(py::init<const MatrixDim&,const PolycrystallineMaterialBase&>())
+//    ;
+    
     py::class_<std::map<std::pair<size_t,size_t>,const std::shared_ptr<GrainBoundary<3>>>>(m,"GrainBoundaryMap")
         .def(py::init<>())
     ;
+
+    py::class_<Lattice<3>>(m,"Lattice")
+        .def(py::init<const typename Lattice<3>::MatrixDimD&,const typename Lattice<3>::MatrixDimD&>())
+    ;
     
-    py::class_<Grain<3>,std::map<std::pair<size_t,size_t>,const std::shared_ptr<GrainBoundary<3>>>>(m,"Grain")
+    py::class_<LatticeVector<3>>(m,"LatticeVector")
+        .def(py::init<const typename LatticeVector<3>::VectorDimD&,const typename LatticeVector<3>::LatticeType&>())
+        .def(py::init<const typename LatticeVector<3>::LatticeType&>())
+        .def("cartesian",&LatticeVector<3>::cartesian)
+    ;
+
+    py::class_<LatticeDirection<3>,LatticeVector<3>>(m,"LatticeDirection")
+        .def(py::init<const LatticeVector<3>&>())
+//        .def(py::init<const typename LatticeVector<3>::LatticeType&>())
+    ;
+
+    
+    py::class_<GammaSurface>(m,"GammaSurface")
+        .def(py::init<const Eigen::Matrix<double,2,2>&,
+             const Eigen::Matrix<double,Eigen::Dynamic,2>&,
+             const Eigen::Matrix<double,Eigen::Dynamic,3>&,
+             const int&,
+             const std::vector<Eigen::Matrix<double,2,1>>&>())
+    ;
+    
+    py::class_<GlidePlaneBase,std::shared_ptr<GlidePlaneBase>>(m,"GlidePlaneBase")
+        .def(py::init<const LatticeVector<3>&,const LatticeVector<3>&,const std::shared_ptr<GammaSurface>&>()) // THIS GIVES ERROR
+        .def("misfitEnergy", &GlidePlaneBase::misfitEnergy)
+        .def("localSlipVector", &GlidePlaneBase::localSlipVector)
+        .def_readonly("primitiveVectors", &GlidePlaneBase::primitiveVectors)
+    ;
+
+    py::class_<SlipSystem,std::shared_ptr<SlipSystem>>(m,"SlipSystem")
+//        .def(py::init<const GlidePlaneBase&,const RationalLatticeDirection<3>&,const std::shared_ptr<DislocationMobilityBase>&,const std::shared_ptr<GlidePlaneNoise>&>())
+        .def_readonly("unitNormal", &SlipSystem::unitNormal)
+        .def_readonly("unitSlip", &SlipSystem::unitSlip)
+    ;
+    
+//    py::bind_map<std::map<const GlidePlaneBase*,std::shared_ptr<GammaSurface>>>(m, "GammaSurfaceMap");
+    py::class_<SecondPhase<3>,std::shared_ptr<SecondPhase<3>>>(m,"SecondPhase")
+//        .def(py::init<const GlidePlaneBase&,const RationalLatticeDirection<3>&,const std::shared_ptr<DislocationMobilityBase>&,const std::shared_ptr<GlidePlaneNoise>&>())
+        .def_readonly("name", &SecondPhase<3>::name)
+//        .def("misfitEnergy", &SecondPhase<3>::misfitEnergy)
+//        .def("misfitEnergy", static_cast<double (SecondPhase<3>::*)(Eigen::Ref<const Eigen::Matrix<double,3,1>>,const size_t&) const>(&SecondPhase<3>::misfitEnergy))
+//        .def_readonly("gsMap", &SecondPhase<3>::gsMap)
+        .def("misfitEnergy",static_cast<double (SecondPhase<3>::*)(const Eigen::Matrix<double,3,1>&,const size_t&) const>(&SecondPhase<3>::misfitEnergy))
+
+    ;
+
+    //    py::bind_vector<std::vector<std::shared_ptr<GlidePlaneBase>>>(m, "GlidePlaneBasePtrVector"); // THIS GIVES ERROR
+    //    py::bind_vector<std::vector<std::shared_ptr<SlipSystem>>>(m, "SlipSystemPtrVector");
+    //    py::bind_map<std::map<size_t,std::shared_ptr<SecondPhase<3>>>>(m, "SecondPhasePtrMap");
+
+    
+    py::bind_map<typename TypeTraits<SingleCrystalBase<3>>::PlaneNormalContainerType>(m, "GlidePlaneBasePtrMap"); // THIS GIVES ERROR
+    py::bind_map<typename TypeTraits<SingleCrystalBase<3>>::SlipSystemContainerType>(m, "SlipSystemPtrMap");
+    py::bind_map<typename TypeTraits<SingleCrystalBase<3>>::SecondPhaseContainerType>(m, "SecondPhasePtrMap");
+
+    
+    
+    py::class_<SingleCrystalBase<3>,Lattice<3>>(m,"SingleCrystalBase")
+//    py::class_<SingleCrystalBase<3>,Lattice<3>,std::vector<std::shared_ptr<GlidePlaneBase>>,std::vector<std::shared_ptr<SlipSystem>>,std::map<size_t,std::shared_ptr<SecondPhase<3>>>>(m,"SingleCrystalBase")
+        .def(py::init<const PolycrystallineMaterialBase&,const MatrixDim&>())
+//        .def(py::init<const BCClattice<3>&>())
+//        .def(py::init<const FCClattice<3>&>())
+//        .def(py::init<const HEXlattice<3>&>())
+        .def("planeNormals", &SingleCrystalBase<3>::planeNormals)
+        .def("slipSystems", &SingleCrystalBase<3>::slipSystems)
+        .def("secondPhases", &SingleCrystalBase<3>::secondPhases)
+        .def("planeBase", &SingleCrystalBase<3>::planeBase)
+        .def("slipSystem", &SingleCrystalBase<3>::slipSystem)
+        .def("secondPhase", &SingleCrystalBase<3>::secondPhase)
+    ;
+    
+    py::class_<Grain<3>,std::shared_ptr<Grain<3>>>(m,"Grain")
         .def(py::init<const MeshRegion<3>&,const PolycrystallineMaterialBase&,const std::string& >())
 //            .def_readonly("grainID", &Grain<3>::grainID)
     ;
@@ -256,10 +426,10 @@ PYBIND11_MODULE(pyMoDELib,m)
     /*      */>(m,"ShearLoopDensitySpecification")
         .def(py::init<>())
         .def(py::init<const std::string&>())
-        .def_readwrite("targetDensity", &ShearLoopDensitySpecification::targetDensity)
+        .def_readwrite("targetDensity_SI", &ShearLoopDensitySpecification::targetDensity_SI)
         .def_readwrite("numberOfSides", &ShearLoopDensitySpecification::numberOfSides)
-        .def_readwrite("radiusDistributionMean", &ShearLoopDensitySpecification::radiusDistributionMean)
-        .def_readwrite("radiusDistributionStd", &ShearLoopDensitySpecification::radiusDistributionStd)
+        .def_readwrite("radiusDistributionMean_SI", &ShearLoopDensitySpecification::radiusDistributionMean_SI)
+        .def_readwrite("radiusDistributionStd_SI", &ShearLoopDensitySpecification::radiusDistributionStd_SI)
         .def_readwrite("allowedGrainIDs", &ShearLoopDensitySpecification::allowedGrainIDs)
         .def_readwrite("allowedSlipSystemIDs", &ShearLoopDensitySpecification::allowedSlipSystemIDs)
     ;
@@ -503,6 +673,18 @@ PYBIND11_MODULE(pyMoDELib,m)
         .def_readwrite("velocityReductionFactor", &PolyhedronInclusionIndividualSpecification::velocityReductionFactor)
         .def_readwrite("phaseID", &PolyhedronInclusionIndividualSpecification::phaseID)
     ;
+    
+    py::class_<DislocationMobilityBCC>(m,"DislocationMobilityBCC")
+//        .def(py::init<const double&,const double&,const double&,const double&,const double&,const double&,const double&,const double&,const double&,const double&,const double&,const double&,const double&,const double&,const double&,const double&,const double&>())
+        .def(py::init<const PolycrystallineMaterialBase&>())
+//        .def("velocity", &DislocationMobilityBCC::velocity)
+//        .def("myVelocity", static_cast<double (DislocationMobilityBCC::*)(Eigen::Ref<const Eigen::Matrix<double,3,3>>,Eigen::Ref<const Eigen::Matrix<double,3,1>>,Eigen::Ref<const Eigen::Matrix<double,3,1>>,Eigen::Ref<const Eigen::Matrix<double,3,1>>,const double&)>(&DislocationMobilityBCC::myVelocity))
+        .def("velocity", static_cast<double (DislocationMobilityBCC::*)(const Eigen::Matrix<double,3,3>&,const Eigen::Matrix<double,3,1>&,const Eigen::Matrix<double,3,1>&,const Eigen::Matrix<double,3,1>&,const double&)>(&DislocationMobilityBCC::velocity))
+
+    ;
+    //    ,static_cast<double (DislocationMobilityBCC:*)() const>(&SimplicialMesh<3>::xMin)
+    
+
     
 }
 #endif

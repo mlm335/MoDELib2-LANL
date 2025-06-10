@@ -20,7 +20,7 @@ namespace model
     DislocationLoop<dim,corder>::DislocationLoop(LoopNetworkType* const net,
                                                  const VectorDim& B,
                                                  const std::shared_ptr<GlidePlaneType>& glidePlane_in) :
-    /* init */ Loop<DislocationLoop>(net,glidePlane_in->grain.singleCrystal->rationalLatticeDirection(B))
+    /* init */ Loop<DislocationLoop>(net,glidePlane_in->grain.rationalLatticeDirection(B))
     /* init */,glidePlane(glidePlane_in)
     /* init */,periodicGlidePlane(this->network().ddBase.periodicGlidePlaneFactory.getFromKey(glidePlane->key))
     /* init */,_patches(periodicGlidePlane)
@@ -32,7 +32,7 @@ namespace model
     /* init */,_slippedAreaRate(0.0)
     /* init */,_rightHandedUnitNormal(VectorDim::Zero())
     /* init */,_rightHandedUnitNormal_old(VectorDim::Zero())
-    /* init */,_rightHandedNormal(*grain.singleCrystal)
+    /* init */,_rightHandedNormal(new ReciprocalLatticeDirectionType(grain))
     /* init */,_slipSystem(nullptr)
 
     {
@@ -186,7 +186,7 @@ namespace model
     template <int dim, short unsigned int corder>
     const typename DislocationLoop<dim,corder>::ReciprocalLatticeDirectionType& DislocationLoop<dim,corder>::rightHandedNormal() const
     {
-        return _rightHandedNormal;
+        return *_rightHandedNormal;
     }
 
     template <int dim, short unsigned int corder>
@@ -330,11 +330,11 @@ namespace model
     template <int dim, short unsigned int corder>
     std::shared_ptr<SlipSystem> DislocationLoop<dim,corder>::searchSlipSystem() const
     {
-        for(const auto& ss : grain.singleCrystal->slipSystems())
+        for(const auto& ss : grain.slipSystems())
         {
-            if(ss->isSameAs(this->flow(),_rightHandedNormal))
+            if(ss.second->isSameAs(this->flow(),rightHandedNormal()))
             {
-                return ss;
+                return ss.second;
             }
         }
         return std::shared_ptr<SlipSystem>(nullptr);
@@ -368,7 +368,7 @@ namespace model
         {// a glide plane exists
             if(_slipSystem)
             {// a current slip system exists
-                if(_slipSystem->isSameAs(this->flow(),_rightHandedNormal))
+                if(_slipSystem->isSameAs(this->flow(),rightHandedNormal()))
                 {// currenst slip system still valid, don't do anything
                 }
                 else
@@ -433,8 +433,9 @@ namespace model
             _slippedArea=nA.norm();
             _rightHandedUnitNormal= _slippedArea>FLT_EPSILON? (nA/_slippedArea).eval() : VectorDim::Zero();
             const double nnDot(_rightHandedUnitNormal.dot(glidePlane->unitNormal));
-            _rightHandedNormal= nnDot>=0.0? glidePlane->n : ReciprocalLatticeDirection<dim>(glidePlane->n*(-1));
-            _rightHandedUnitNormal=_rightHandedNormal.cartesian().normalized();
+//            _rightHandedNormal= nnDot>=0.0? glidePlane->n : ReciprocalLatticeDirection<dim>(glidePlane->n*(-1));
+            _rightHandedNormal.reset(nnDot>=0.0? new ReciprocalLatticeDirectionType(glidePlane->n) : new ReciprocalLatticeDirection<dim>(glidePlane->n*(-1)));
+            _rightHandedUnitNormal=rightHandedNormal().cartesian().normalized();
             VerboseDislocationLoop(3,"_rightHandedUnitNormal= "<<_rightHandedUnitNormal.transpose()<<std::endl;);
         }
         else
@@ -458,7 +459,8 @@ namespace model
                 }
                 _slippedArea=nA.norm();
                 _rightHandedUnitNormal= _slippedArea>FLT_EPSILON? (nA/_slippedArea).eval() : VectorDim::Zero();
-                _rightHandedNormal= grain.singleCrystal->reciprocalLatticeDirection(_rightHandedUnitNormal);
+//                _rightHandedNormal= grain.reciprocalLatticeDirection(_rightHandedUnitNormal);
+                _rightHandedNormal.reset(new ReciprocalLatticeDirectionType(grain.reciprocalLatticeDirection(_rightHandedUnitNormal)));
                 VerboseDislocationLoop(3,"non-glide _rightHandedUnitNormal= "<<_rightHandedUnitNormal.transpose()<<std::endl;);
             }
         }

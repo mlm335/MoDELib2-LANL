@@ -31,18 +31,15 @@ namespace model
     {
         if(glidePlane)
         {
-            if(glidePlane->grain.singleCrystal)
-            {
-                for(const auto& pb : glidePlane->grain.singleCrystal->planeNormals())
+                for(const auto& pb : glidePlane->grain.planeNormals())
                 {
-                    if(  (*pb+glidePlane->n).squaredNorm()==0
-                       ||(*pb-glidePlane->n).squaredNorm()==0)
+                    if(  (*pb.second+glidePlane->n).base().squaredNorm()==0
+                       ||(*pb.second-glidePlane->n).base().squaredNorm()==0)
                     {
-                        planeBase=pb;
+                        planeBase=pb.second;
                         break;
                     }
                 }
-            }
         }
     }
 
@@ -145,7 +142,7 @@ namespace model
         glidePlanesNoiseBox->addItem("solidSolution_2");
         glidePlanesNoiseBox->addItem("stackingFault");
         const auto& grain(defectiveCrystal.ddBase.poly.grains.begin()->second);
-        for(size_t k=0; k<grain.singleCrystal->slipSystems().size();++k)
+        for(size_t k=0; k<grain->slipSystems().size();++k)
         {
             slipSystemNoiseBox->addItem(QString::fromStdString("slipSystem "+ std::to_string(k)));
         }
@@ -234,7 +231,7 @@ namespace model
             const size_t selectedGrainID(std::stoi(grainNoiseBox->currentText().toStdString()));
             const auto& grain(defectiveCrystal.ddBase.poly.grain(selectedGrainID));
             const size_t selectedSlipSystemID(slipSystemNoiseBox->currentIndex());
-            const auto& slipSystem(grain.singleCrystal->slipSystems()[selectedSlipSystemID]);
+            const auto& slipSystem(grain->slipSystems().at(selectedSlipSystemID));
             const auto& planeNoise(slipSystem->planeNoise);
 
   

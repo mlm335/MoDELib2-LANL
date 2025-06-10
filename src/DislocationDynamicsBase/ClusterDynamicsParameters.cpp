@@ -305,10 +305,10 @@ namespace model
     }
 
     template<int dim>
-    Eigen::Array<double,1,ClusterDynamicsParameters<dim>::iSize/2> ClusterDynamicsParameters<dim>::getImmobileSpeciesBurgersMagnitude(const std::map<size_t,Grain<dim>>& grains) const
+    Eigen::Array<double,1,ClusterDynamicsParameters<dim>::iSize/2> ClusterDynamicsParameters<dim>::getImmobileSpeciesBurgersMagnitude(const GrainContainerType& grains) const
     {
         Eigen::Array<double,1,iSize/2> temp(Eigen::Array<double,1,iSize/2>::Zero());
-        const Eigen::Matrix<double,dim,dim> lat(grains.begin()->second.singleCrystal->latticeBasis);
+        const Eigen::Matrix<double,dim,dim> lat(grains.begin()->second->latticeBasis);
         const Eigen::Matrix<double,dim,iSize/2> localBurgers(lat*immobileSpeciesBurgers);
         
         for(size_t k=0; k<iSize/2; k++)
@@ -322,7 +322,7 @@ namespace model
 
 
     template<int dim>
-    std::map<size_t,std::vector<Eigen::Matrix<double,dim,dim>>> ClusterDynamicsParameters<dim>::getD(const std::map<size_t,Grain<dim>>& grains) const
+    std::map<size_t,std::vector<Eigen::Matrix<double,dim,dim>>> ClusterDynamicsParameters<dim>::getD(const GrainContainerType& grains) const
     {
         std::map<size_t,std::vector<Eigen::Matrix<double,dim,dim>>> temp;
         
@@ -341,7 +341,7 @@ namespace model
                 // c^T*inv(C2G^T*Dg*C2G)*c
                 // Dc=C2G^T*Dg*C2G
                 // Dg = C2G*Dc*C2G^T
-                const Eigen::Matrix<double,dim,dim> Dglobal(grainPair.second.singleCrystal->C2G*Dlocal*grainPair.second.singleCrystal->C2G.transpose());
+                const Eigen::Matrix<double,dim,dim> Dglobal(grainPair.second->C2G*Dlocal*grainPair.second->C2G.transpose());
                 grainIter.first->second.emplace_back(Dglobal);
                 
                 if( fabs(Dglobal.eigenvalues().imag()(0)*Dglobal.eigenvalues().imag()(1)*Dglobal.eigenvalues().imag()(2)) > FLT_EPSILON)

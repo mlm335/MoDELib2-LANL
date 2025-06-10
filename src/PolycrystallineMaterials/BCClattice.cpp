@@ -14,81 +14,42 @@
 
 namespace model
 {
-    
-        
-        BCClattice<3>::BCClattice(const MatrixDim& Q,const PolycrystallineMaterialBase& material,const std::string& polyFile) :
-        /* init */ SingleCrystalBase<dim>(getLatticeBasis(),Q)
-        /* init */,PlaneNormalContainerType(getPlaneNormals(material,polyFile))
-        /* init */,SlipSystemContainerType(getSlipSystems(material,*this))
-        /* init */,SecondPhaseContainerType(getSecondPhases(material,*this))
-        {
-            
-        }
         
         Eigen::Matrix<double,3,3> BCClattice<3>::getLatticeBasis()
         {/*!\returns The matrix of lattice vectors (cartesian cooridinates in columns),
           * in units of the crystallographic Burgers vector.
           */
-            
             Eigen::Matrix<double,dim,dim> temp;
             temp << -1.0,  1.0,  1.0,
             /*   */  1.0, -1.0,  1.0,
             /*   */  1.0,  1.0, -1.0;
-            
             return temp/sqrt(3.0);
         }
 
-    const typename BCClattice<3>::PlaneNormalContainerType& BCClattice<3>::planeNormals() const
-    {
-        return *this;
-    }
-
-    const typename BCClattice<3>::SlipSystemContainerType& BCClattice<3>::slipSystems() const
-    {
-        return *this;
-    }
-
-    const typename BCClattice<3>::SecondPhaseContainerType& BCClattice<3>::secondPhases() const
-    {
-        return *this;
-    }
-
-
-//    const typename BCClattice<3>::DislocationMobilityContainerType& dislocationMobilities() const
-//    {
-//        return *this;
-//    }
-
-
-        
-        std::vector<std::shared_ptr<GlidePlaneBase>> BCClattice<3>::getPlaneNormals(const PolycrystallineMaterialBase& ,
-                                                                                    const std::string& ) const
+typename BCClattice<3>::PlaneNormalContainerType BCClattice<3>::planeNormals(const PolycrystallineMaterialBase& material,
+                                                                             const Lattice<dim>& lat)
         {/*!\returns a std::vector of ReciprocalLatticeDirection(s) corresponding
           * the slip plane normals of the BCC lattice
           */
             
-//            typedef Eigen::Matrix<long int,dim,1> VectorDimI;
-//            typedef LatticeVector<dim> LatticeVectorType;
+            LatticeVectorType a1((VectorDimI()<<1,0,0).finished(),lat);
+            LatticeVectorType a2((VectorDimI()<<0,1,0).finished(),lat);
+            LatticeVectorType a3((VectorDimI()<<0,0,1).finished(),lat);
+            LatticeVectorType  y((VectorDimI()<<-1,-1,-1).finished(),lat);
 
-            LatticeVectorType a1((VectorDimI()<<1,0,0).finished(),*this);
-            LatticeVectorType a2((VectorDimI()<<0,1,0).finished(),*this);
-            LatticeVectorType a3((VectorDimI()<<0,0,1).finished(),*this);
-            LatticeVectorType  y((VectorDimI()<<-1,-1,-1).finished(),*this);
-
-            std::vector<std::shared_ptr<GlidePlaneBase>> temp;
-            temp.emplace_back(new GlidePlaneBase(a3,a1,nullptr));
-            temp.emplace_back(new GlidePlaneBase( y,a2,nullptr));
-            temp.emplace_back(new GlidePlaneBase(a2,a3,nullptr));
-            temp.emplace_back(new GlidePlaneBase( y,a1,nullptr));
-            temp.emplace_back(new GlidePlaneBase(a1,a2,nullptr));
-            temp.emplace_back(new GlidePlaneBase( y,a3,nullptr));
-            
+            PlaneNormalContainerType temp;
+            temp.emplace(temp.size(),new GlidePlaneBase(a3,a1,nullptr));
+            temp.emplace(temp.size(),new GlidePlaneBase( y,a2,nullptr));
+            temp.emplace(temp.size(),new GlidePlaneBase(a2,a3,nullptr));
+            temp.emplace(temp.size(),new GlidePlaneBase( y,a1,nullptr));
+            temp.emplace(temp.size(),new GlidePlaneBase(a1,a2,nullptr));
+            temp.emplace(temp.size(),new GlidePlaneBase( y,a3,nullptr));
             return temp;
-
         }
         
-        std::vector<std::shared_ptr<SlipSystem>> BCClattice<3>::getSlipSystems(const PolycrystallineMaterialBase& material,
-                                                                               const PlaneNormalContainerType& plN) const
+typename BCClattice<3>::SlipSystemContainerType BCClattice<3>::slipSystems(const PolycrystallineMaterialBase& material,
+                                                                           const Lattice<dim>& lat,
+                                                                           const PlaneNormalContainerType& plN)
         {/*!\returns a std::vector of ReciprocalLatticeDirection(s) corresponding
           * the slip systems of the Hexagonal lattice
           */
@@ -96,26 +57,16 @@ namespace model
             const std::string dislocationMobilityType(TextFileParser(material.materialFile).readString("dislocationMobilityType",true));
             DislocationMobilitySelector mobilitySelector("BCC");
             const std::shared_ptr<DislocationMobilityBase> mobility110(mobilitySelector.getMobility(dislocationMobilityType,material));
-
-            
-//            const std::shared_ptr<DislocationMobilityBase> mobility110(new DislocationMobilityBCC(material));
-
-            
-//            const int solidSolutionNoiseMode(TextFileParser(material.materialFile).readScalar<int>("solidSolutionNoiseMode",true));
-//            const int stackingFaultNoiseMode(TextFileParser(material.materialFile).readScalar<int>("stackingFaultNoiseMode",true));
             std::shared_ptr<GlidePlaneNoise> planeNoise(new GlidePlaneNoise(material));
+            const double d110(lat.reciprocalLatticeDirection(lat.C2G*(VectorDimD()<<1.0,1.0,0.0).finished()).planeSpacing());
 
-            
-//            typedef Eigen::Matrix<double,dim,1> VectorDimD;
-            const double d110(this->reciprocalLatticeDirection(this->C2G*(VectorDimD()<<1.0,1.0,0.0).finished()).planeSpacing());
-
-            std::vector<std::shared_ptr<SlipSystem>> temp;
+            SlipSystemContainerType temp;
             for(const auto& planeBase : plN)
             {
-                if(std::fabs(planeBase->planeSpacing()-d110)<FLT_EPSILON)
+                if(std::fabs(planeBase.second->planeSpacing()-d110)<FLT_EPSILON)
                 {// a {110} plane
-                    const auto& a1(planeBase->primitiveVectors.first);
-                    const auto& a3(planeBase->primitiveVectors.second);
+                    const auto& a1(planeBase.second->primitiveVectors.first);
+                    const auto& a3(planeBase.second->primitiveVectors.second);
                     
                     std::vector<RationalLatticeDirection<3>> slipDirs;
                     
@@ -133,29 +84,22 @@ namespace model
                         slipDirs.emplace_back(Rational(-1,1),a1+a3);
                     }
                     
-//                    temp.emplace_back(new SlipSystem(*planeBase, a1,mobility110,nullptr,planeNoise));
-//                    temp.emplace_back(new SlipSystem(*planeBase,a1*(-1),mobility110,nullptr,planeNoise));
-//                    temp.emplace_back(new SlipSystem(*planeBase, a3,mobility110,nullptr,planeNoise));
-//                    temp.emplace_back(new SlipSystem(*planeBase,a3*(-1),mobility110,nullptr,planeNoise));
-                    
                     for(const auto& slipDir : slipDirs)
                     {
-                        temp.emplace_back(new SlipSystem(*planeBase, slipDir,mobility110,planeNoise));
+                        temp.emplace(temp.size(),new SlipSystem(*planeBase.second, slipDir,mobility110,planeNoise));
                     }
-
                 }
             }
-
             return temp;
         }
         
         
 
-    typename BCClattice<3>::SecondPhaseContainerType BCClattice<3>::getSecondPhases(const PolycrystallineMaterialBase& material,
-                                                                                const PlaneNormalContainerType& planeNormals)
+    typename BCClattice<3>::SecondPhaseContainerType BCClattice<3>::secondPhases(const PolycrystallineMaterialBase& material,
+                                                                                 const Lattice<dim>& lat,
+                                                                                 const PlaneNormalContainerType& plN)
     {
         
-//        std::vector<std::shared_ptr<SecondPhase<3>>> temp;
         SecondPhaseContainerType temp;
 
         for(const std::string& sp : material.enabledSecondPhases)
@@ -171,16 +115,16 @@ namespace model
                 const Eigen::Matrix<double,2,2> A110((Eigen::Matrix<double,2,2>()<< 1.0,-0.5,
                                                                                  0.0,0.5*std::sqrt(3.0)).finished());
                 std::shared_ptr<GammaSurface> gammaSurface110(new GammaSurface(A110,waveVectors110,f110,rotSymm110,mirSymm110));
-                const double d110(this->reciprocalLatticeDirection(this->C2G*(VectorDimD()<<1.0,1.0,0.0).finished()).planeSpacing());
+                const double d110(lat.reciprocalLatticeDirection(lat.C2G*(VectorDimD()<<1.0,1.0,0.0).finished()).planeSpacing());
                 std::map<const GlidePlaneBase*,std::shared_ptr<GammaSurface>> gsMap;
-                for(const auto& pn : planeNormals)
+                for(const auto& pn : plN)
                 {
-                    if(std::abs(pn->planeSpacing()-d110)<FLT_EPSILON)
+                    if(std::abs(pn.second->planeSpacing()-d110)<FLT_EPSILON)
                     {// a 111 plane
-                        gsMap.emplace(pn.get(),gammaSurface110);
+                        gsMap.emplace(pn.second.get(),gammaSurface110);
                     }
                 }
-                std::shared_ptr<SecondPhase<dim>> sp(new SecondPhase<dim>("chi",gsMap));
+                std::shared_ptr<SecondPhase<dim>> sp(new SecondPhase<dim>("chi",gsMap,plN));
                 temp.emplace(sp->sID,sp);
             }
             else if(sp=="sigma")
@@ -194,16 +138,16 @@ namespace model
                 const Eigen::Matrix<double,2,2> A110((Eigen::Matrix<double,2,2>()<< 1.0,-0.5,
                                                                                  0.0,0.5*std::sqrt(3.0)).finished());
                 std::shared_ptr<GammaSurface> gammaSurface110(new GammaSurface(A110,waveVectors110,f110,rotSymm110,mirSymm110));
-                const double d110(this->reciprocalLatticeDirection(this->C2G*(VectorDimD()<<1.0,1.0,0.0).finished()).planeSpacing());
+                const double d110(lat.reciprocalLatticeDirection(lat.C2G*(VectorDimD()<<1.0,1.0,0.0).finished()).planeSpacing());
                 std::map<const GlidePlaneBase*,std::shared_ptr<GammaSurface>> gsMap;
-                for(const auto& pn : planeNormals)
+                for(const auto& pn : plN)
                 {
-                    if(std::abs(pn->planeSpacing()-d110)<FLT_EPSILON)
+                    if(std::abs(pn.second->planeSpacing()-d110)<FLT_EPSILON)
                     {// a 111 plane
-                        gsMap.emplace(pn.get(),gammaSurface110);
+                        gsMap.emplace(pn.second.get(),gammaSurface110);
                     }
                 }
-                std::shared_ptr<SecondPhase<dim>> sp(new SecondPhase<dim>("sigma",gsMap));
+                std::shared_ptr<SecondPhase<dim>> sp(new SecondPhase<dim>("sigma",gsMap,plN));
                 temp.emplace(sp->sID,sp);
             }
 

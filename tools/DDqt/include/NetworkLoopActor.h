@@ -66,6 +66,16 @@ namespace model
         QSlider* sliderSlippedArea;
 
         QGroupBox* meshAreaBox;
+        
+        vtkSmartPointer<vtkPolyData> nodePolyData;
+        vtkSmartPointer<vtkGlyph3D> nodeGlyphs;
+        vtkSmartPointer<vtkPolyDataMapper> nodeMapper;
+        vtkSmartPointer<vtkActor> nodeActor;
+
+        vtkSmartPointer<vtkPolyData> labelPolyData;
+        vtkSmartPointer<vtkLabeledDataMapper> labelMapper;
+        vtkSmartPointer<vtkActor2D> labelActor;
+
 
         vtkSmartPointer<vtkPolyData> loopPolyData;
         vtkSmartPointer<vtkPolyDataMapper> loopMapper;

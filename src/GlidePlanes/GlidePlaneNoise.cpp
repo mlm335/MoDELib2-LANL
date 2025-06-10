@@ -8,6 +8,7 @@
 #ifndef model_GlidePlaneNoise_cpp
 #define model_GlidePlaneNoise_cpp
 
+#include <algorithm>
 #include <filesystem>
 #include <GlidePlaneNoise.h>
 
@@ -16,7 +17,6 @@ namespace model
 
     GlidePlaneNoise::GlidePlaneNoise(const PolycrystallineMaterialBase& mat)
     {
-        
         const auto noiseFiles(TextFileParser(mat.materialFile).readStringVector("glidePlaneNoise"));
         for(const auto& pair : noiseFiles)
         {
@@ -36,7 +36,8 @@ namespace model
                     const double a(parser.readScalar<double>("spreadLstress_SI",true)/mat.b_SI);      // spreading length for stresses [AA]
                     const double a_Cai(parser.readScalar<double>("a_cai_SI",true)/mat.b_SI);
                     const double MSSS(parser.readScalar<double>("MSSS_SI",true)/std::pow(mat.mu_SI,2));
-                    const auto success(solidSolutionNoise().emplace(tag,new AnalyticalSolidSolutionNoise(tag,seed,gridSize,gridSpacing,a,a_Cai,MSSS)));
+                    const auto success(solidSolutionNoise().emplace(tag,new AnalyticalSolidSolutionNoise(tag,seed,gridSize,gridSpacing,Eigen::Matrix<double,2,2>::Identity(),a,a_Cai,MSSS)));
+
                     if(!success.second)
                     {
                         throw std::runtime_error("Could not insert noise "+tag);
@@ -44,21 +45,13 @@ namespace model
                 }
                 if(type=="MDSolidSolutionNoise")
                 {
-                    //                    const double a(parser.readScalar<double>("spreadLstress_SI",true)/mat.b_SI);      // spreading length for stresses [AA]
                     const double a_Cai(parser.readScalar<double>("a_cai_SI",true)/mat.b_SI);
-                    //                    const double MSSS(parser.readScalar<double>("MSSS_SI",true)/std::pow(mat.mu_SI,2));
-                    // const std::string fileName_vtk_xz(std::filesystem::path(mat.materialFile).parent_path().string()+"/"+TextFileParser::removeSpaces(parser.readString("fileName_vtk_xz",true)));
-                    // const std::string fileName_vtk_yz(std::filesystem::path(mat.materialFile).parent_path().string()+"/"+TextFileParser::removeSpaces(parser.readString("fileName_vtk_yz",true)));
-                    
-                    const std::string correlationFile_L(parser.readString("correlationFile_L",true));
-                    const std::string correlationFile_T(parser.readString("correlationFile_T",true));
-                    
-                    // std::cout << "Current working directory: " << std::filesystem::current_path() << std::endl;
-                    //std::filesystem::current_path(std::filesystem::path(noiseFileName).parent_path());
-                    // std::cout << "Current working directory: " << std::filesystem::current_path() << std::endl;
-                    
-                    const auto success(solidSolutionNoise().emplace(tag,new MDSolidSolutionNoise(mat,tag,correlationFile_L,correlationFile_T,seed,gridSize,gridSpacing,a_Cai)));
-                    // std::cout<<"MDSolidSolutionNoise inserted"<<std::endl;
+
+                    // relative paths for correlation vtk files (easier to make everything self contained)
+                    const std::string correlationFile_xz(std::filesystem::path(mat.materialFile).parent_path().string()+"/"+TextFileParser::removeSpaces(parser.readString("correlationFile_xz",true)));
+                    const std::string correlationFile_yz(std::filesystem::path(mat.materialFile).parent_path().string()+"/"+TextFileParser::removeSpaces(parser.readString("correlationFile_yz",true)));
+
+                    const auto success(solidSolutionNoise().emplace(tag,new MDSolidSolutionNoise(mat,tag,correlationFile_xz,correlationFile_yz,seed,gridSize,gridSpacing,Eigen::Matrix<double,2,2>::Identity(),a_Cai)));
                     if(!success.second)
                     {
                         throw std::runtime_error("Could not insert noise "+tag);
@@ -66,33 +59,40 @@ namespace model
                 }
                 if(type=="MDStackingFaultNoise")
                 {
-                    
+                    // relative paths for correlation vtk files (easier to make everything self contained)
+                    const std::string correlationFile_stackingFault(std::filesystem::path(mat.materialFile).parent_path().string()+"/"+TextFileParser::removeSpaces(parser.readString("correlationFile",true)));
+
+                    const auto success(stackingFaultNoise().emplace(tag,new MDStackingFaultNoise(mat,tag,correlationFile_stackingFault,seed,gridSize,gridSpacing,Eigen::Matrix<double,2,2>::Identity())));
+
+                    if(!success.second)
+                    {
+                        throw std::runtime_error("Could not insert noise "+tag);
+                    }
                 }
                 if(type=="MDShortRangeOrderNoise")
                 {
-                    
+
                 }
             }
-            
-            
+
+
         }
         for(auto& pair : solidSolutionNoise())
         {
             pair.second->computeRealNoise();
             pair.second->computeRealNoiseStatistics(mat);
         }
-        
+
         for(auto& pair : stackingFaultNoise())
         {
             pair.second->computeRealNoise();
             pair.second->computeRealNoiseStatistics(mat);
         }
-        
+
     }
 
     std::tuple<double,double,double> GlidePlaneNoise::gridInterp(const Eigen::Matrix<double,2,1>& localPos) const
     {   // Added by Hyunsoo (hyunsol@g.clemson.edu)
-        
         double effsolNoiseXZ(0.0);
         double effsolNoiseYZ(0.0);
         for(const auto& noise : solidSolutionNoise())
@@ -105,11 +105,14 @@ namespace model
                 effsolNoiseYZ+=noise.second->operator[](storageID)(1)*idxAndWeights.second[p];
             }
         }
-        
+
         double effsfNoise(0.0);
         for(const auto& noise : stackingFaultNoise())
         {
-            const auto idxAndWeights(noise.second->posToPeriodicCornerIdxAndWeights(localPos));
+            // transform the basis if it is non-orthogonal
+            //const auto idxAndWeights(noise.second->posToPeriodicCornerIdxAndWeights(localPos));
+            const auto idxAndWeights(noise.second->posToPeriodicCornerIdxAndWeights(noise.second->invTransposeLatticeBasis*localPos));
+
             for(size_t p=0;p<idxAndWeights.first.size();++p)
             {
                 const int storageID(noise.second->storageIndex(idxAndWeights.first[p](0),idxAndWeights.first[p](1)));

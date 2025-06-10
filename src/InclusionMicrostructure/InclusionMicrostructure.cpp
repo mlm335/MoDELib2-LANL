@@ -34,9 +34,9 @@ namespace model
             {
                 
                 const auto& grain(this->ddBase.poly.grain(searchPair.second->region->regionID));
-                if(inclusion.phaseID<int(grain.singleCrystal->secondPhases().size()))
+                if(inclusion.phaseID<int(grain->secondPhases().size()))
                 {
-                    const auto secondPhase(grain.singleCrystal->secondPhases().at(inclusion.phaseID));
+                    const auto secondPhase(grain->secondPhases().at(inclusion.phaseID));
                     EshelbyInclusionBase<dim>::set_count(inclusion.inclusionID);
                     std::shared_ptr<EshelbyInclusionBase<dim>> iptr(new SphericalInclusion<dim>(inclusion.C,inclusion.a,inclusion.eT,this->ddBase.poly.nu,this->ddBase.poly.mu,inclusion.mobilityReduction,inclusion.phaseID,secondPhase));
                     this->eshelbyInclusions().emplace(inclusion.inclusionID,iptr);
@@ -102,9 +102,9 @@ namespace model
                     if(grainIDs.size()==1)
                     {
                         const auto& grain(this->ddBase.poly.grain(*grainIDs.begin()));
-                        if(inclusion.phaseID<int(grain.singleCrystal->secondPhases().size()))
+                        if(inclusion.phaseID<int(grain->secondPhases().size()))
                         {
-                            const auto secondPhase(grain.singleCrystal->secondPhases().at(inclusion.phaseID));
+                            const auto secondPhase(grain->secondPhases().at(inclusion.phaseID));
                             EshelbyInclusionBase<dim>::set_count(inclusion.inclusionID);
                             std::shared_ptr<EshelbyInclusionBase<dim>> iptr(new PolyhedronInclusion<dim>(this->polyhedronInclusionNodes(),faces,inclusion.eT,this->ddBase.poly.nu,this->ddBase.poly.mu,inclusion.mobilityReduction,inclusion.phaseID,secondPhase));
                             this->eshelbyInclusions().emplace(inclusion.inclusionID,iptr);
@@ -129,7 +129,6 @@ namespace model
                 throw std::runtime_error("inclusionID not found in faceMap");
             }
         }
-        
     }
 
     template<int dim>
@@ -142,7 +141,6 @@ namespace model
     void InclusionMicrostructure<dim>::updateConfiguration()
     {
         this->lastUpdateTime=this->ddBase.simulationParameters.totalTime;
-        
     }
 
     template<int dim>

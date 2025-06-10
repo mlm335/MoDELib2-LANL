@@ -6,7 +6,7 @@ import numpy as np
 sys.path.append("../build/tools/pyMoDELib")
 import pyMoDELib
 
-simulationDir=os.path.abspath("../tutorials/crossSlip")
+simulationDir=os.path.abspath("../tutorials/uniformLoadController")
 ddBase=pyMoDELib.DislocationDynamicsBase(simulationDir)
 
 # Microstructure Generation
@@ -25,11 +25,10 @@ defectiveCrystal=pyMoDELib.DefectiveCrystal(ddBase)
 defectiveCrystal.initializeConfiguration(microstructureGenerator.configIO)
 
 # Exctract displacement and stress fields on the xy-plane through the center of the mesh
-mesh=ddBase.mesh
 xMax=mesh.xMax(); # vector [max(x1) max(x2) max(x3)] in the mesh
 xMin=mesh.xMin(); # vector [min(x1) min(x2) min(x3)] in the mesh
 
-n=200
+n=20
 x=np.linspace(xMin[0], xMax[0], num=n) # grid x-range
 y=np.linspace(xMin[1], xMax[1], num=n) # grid x-range
 z=0.5*(xMin[2]+xMax[2])
@@ -64,3 +63,8 @@ fig=plt.figure()
 plt.imshow(s11,origin='lower',cmap='jet')
 plt.colorbar()
 plt.show()
+
+#mesh=ddBase.mesh
+#grain1=ddBase.poly.grain(1)
+#for phase in grain1.secondPhases().values():
+#    print(phase.name)

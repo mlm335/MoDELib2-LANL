@@ -31,8 +31,8 @@ namespace model
                     {// periodic translation re-enters into the same grain
                         const auto& grain(poly.grains.at(region.second->regionID));
                         std::cout<<"MeshFace "<<face.first<<" checking if periodicShift is a LatticeVector "<<std::flush;
-                        const auto lv(grain.singleCrystal->latticeVector(face.second->periodicFacePair.first));
-                        std::cout<<"LatticeVector"<<"="<<lv.transpose()<<std::endl;
+                        const auto lv(grain->latticeVector(face.second->periodicFacePair.first));
+                        std::cout<<"LatticeVector"<<"="<<lv.base().transpose()<<std::endl;
                     }
                 }
             }

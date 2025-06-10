@@ -643,7 +643,7 @@ typename DislocationSegment<dim, corder>::VectorDim DislocationSegment<dim, cord
             for (const auto &otherPlane : other)
             {
                 //                    if(plane!=otherPlane && plane->n.cross(otherPlane->n).squaredNorm()==0)
-                if (plane->n.cross(otherPlane->n).squaredNorm() == 0)
+                if (plane->n.cross(otherPlane->n).base().squaredNorm() == 0)
                 { // parallel planes
                     pp.emplace_back(plane, otherPlane);
                 }

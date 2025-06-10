@@ -34,16 +34,20 @@ namespace model
     /* init */,outputLoopLength(TextFileParser(ddBase.simulationParameters.traitsIO.ddFile).readScalar<int>("outputLoopLength",true))
     /* init */,outputSegmentPairDistances(TextFileParser(ddBase.simulationParameters.traitsIO.ddFile).readScalar<int>("outputSegmentPairDistances",true))
     /* init */,outputPlasticDistortionPerSlipSystem(TextFileParser(ddBase.simulationParameters.traitsIO.ddFile).readScalar<int>("outputPlasticDistortionPerSlipSystem",true))
+    /* init */,outputDislocationDensityPerSlipSystem(TextFileParser(ddBase.simulationParameters.traitsIO.ddFile).readScalar<int>("outputDislocationDensityPerSlipSystem",true))
     /* init */,computeElasticEnergyPerLength(TextFileParser(ddBase.simulationParameters.traitsIO.ddFile).readScalar<int>("computeElasticEnergyPerLength",true))
     /* init */,alphaLineTension(TextFileParser(ddBase.simulationParameters.traitsIO.ddFile).readScalar<double>("alphaLineTension",true))
     /* init */,use_velocityFilter(TextFileParser(ddBase.simulationParameters.traitsIO.ddFile).readScalar<double>("use_velocityFilter",true))
     /* init */,velocityReductionFactor(TextFileParser(ddBase.simulationParameters.traitsIO.ddFile).readScalar<double>("velocityReductionFactor",true))
-    /* init */,verboseDislocationNode(TextFileParser(ddBase.simulationParameters.traitsIO.ddFile).readScalar<int>("verboseDislocationNode",true))
+    /* init */,nodalVelocityConstraints(TextFileParser(ddBase.simulationParameters.traitsIO.ddFile).readMatrixCols<double>("nodalVelocityConstraints",dim,true))
+/* init */,verboseDislocationNode(TextFileParser(ddBase.simulationParameters.traitsIO.ddFile).readScalar<int>("verboseDislocationNode",true))
     {
         assert(velocityReductionFactor>0.0 && velocityReductionFactor<=1.0);
         LoopNetworkType::verboseLevel=TextFileParser(ddBase.simulationParameters.traitsIO.ddFile).readScalar<int>("verboseLoopNetwork",true);
         verboseDislocationNetwork=TextFileParser(ddBase.simulationParameters.traitsIO.ddFile).readScalar<int>("verboseDislocationNetwork",true);
     }
+
+
 
     template <int dim, short unsigned int corder>
     void DislocationNetwork<dim, corder>::initializeConfiguration(const DDconfigIO<dim>& configIO,const std::ofstream&,const std::ofstream&)
@@ -80,14 +84,14 @@ namespace model
         size_t loopNumber=1;
         for(const auto& loop : evl.loops())
         {
-            const bool faulted(ddBase.poly.grain(loop.grainID).singleCrystal->rationalLatticeDirection(loop.B).rat.asDouble()!=1.0? true : false);
+            const bool faulted(ddBase.poly.grain(loop.grainID)->rationalLatticeDirection(loop.B).rat.asDouble()!=1.0? true : false);
             VerboseDislocationNetwork(1,"Creating DislocationLoop "<<loop.sID<<" ("<<loopNumber<<" of "<<evl.loops().size()<<"), type="<<loop.loopType<<", faulted="<<faulted<<", |b|="<<loop.B.norm()<<std::endl;);
 
             //std::cout<<"Creating DislocationLoop "<<loop.sID<<" ("<<loopNumber<<" of "<<evl.loops().size()<<"), type="<<loop.loopType<<", faulted="<<faulted<<", |b|="<<loop.B.norm()<<std::endl;
             const size_t loopIDinFile(loop.sID);
             LoopType::set_count(loopIDinFile);
             
-            GlidePlaneKey<dim> loopPlaneKey(loop.P, ddBase.poly.grain(loop.grainID).singleCrystal->reciprocalLatticeDirection(loop.N));
+            GlidePlaneKey<dim> loopPlaneKey(loop.P, ddBase.poly.grain(loop.grainID)->reciprocalLatticeDirection(loop.N));
             tempLoops.push_back(this->loops().create(loop.B, ddBase.glidePlaneFactory.getFromKey(loopPlaneKey)));
             assert(this->loops().get(loopIDinFile)->sID == loopIDinFile);
             loopNumber++;
@@ -216,6 +220,15 @@ namespace model
     std::map<std::pair<int,int>,double> DislocationNetwork<dim,corder>::slipSystemAveragePlasticDistortion() const
     {
         std::map<std::pair<int,int>,double> temp; // <grainID,slipSystemID>
+        for(const auto& grain : ddBase.poly.grains)
+        {
+            for(const auto& slipSystem : grain.second->slipSystems())
+            {
+                const std::pair<int,int> key(std::make_pair(grain.first,slipSystem.second->sID));
+                temp[key]=0.0;
+            }
+        }
+        
         for(const auto& weakloop : this->loops())
         {
             const auto loop(weakloop.second.lock());
@@ -254,6 +267,59 @@ namespace model
       */
         const MatrixDim apdr(averagePlasticDistortionRate());
         return 0.5*(apdr+apdr.transpose());
+    }
+
+    template <int dim, short unsigned int corder>
+    std::vector<std::tuple<double,double,double,double>> DislocationNetwork<dim,corder>::networkLengthPerSlipSystem() const
+    {
+        std::vector<std::tuple<double,double,double,double>> temp;
+
+        if(ddBase.poly.grains.size())
+        {
+            temp.resize(ddBase.poly.grains.begin()->second->slipSystems().size(),std::make_tuple(0.0,0.0,0.0,0.0));
+            std::vector<std::tuple<double,double,double,double>> temp(ddBase.poly.grains.begin()->second->slipSystems().size(),std::make_tuple(0.0,0.0,0.0,0.0));
+            for(auto& loop : this->loops())
+            {
+                if(loop.second.lock()->slipSystem())
+                {
+                    const size_t ssID(loop.second.lock()->slipSystem()->sID);
+                    double& bulkGlissileLength(std::get<0>(temp[ssID]));
+                    double& bulkSessileLength(std::get<1>(temp[ssID]));
+                    double& boundaryLength(std::get<2>(temp[ssID]));
+                    double& grainBoundaryLength(std::get<3>(temp[ssID]));
+                    
+                for(const auto& loopLink : loop.second.lock()->loopLinks())
+                {
+                    if(loopLink->networkLink())
+                    {
+                        if(!loopLink->networkLink()->hasZeroBurgers())
+                        {
+                            if(loopLink->networkLink()->isBoundarySegment())
+                            {
+                                boundaryLength+=loopLink->networkLink()->chord().norm();
+                            }
+                            else if(loopLink->networkLink()->isGrainBoundarySegment())
+                            {
+                                grainBoundaryLength+=loopLink->networkLink()->chord().norm();
+                            }
+                            else
+                            {
+                                if(loopLink->networkLink()->isSessile())
+                                {
+                                    bulkSessileLength+=loopLink->networkLink()->chord().norm()/loopLink->networkLink()->loopLinks().size();
+                                }
+                                else
+                                {
+                                    bulkGlissileLength+=loopLink->networkLink()->chord().norm()/loopLink->networkLink()->loopLinks().size();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            }
+        }
+        return temp;
     }
 
     template <int dim, short unsigned int corder>
@@ -806,6 +872,27 @@ else
             F_labels<<"grain boundary density [m^-2]\n";
         }
         
+        if(outputDislocationDensityPerSlipSystem)
+        {
+            const auto ssDen(this->networkLengthPerSlipSystem());
+            for(const auto& tup : ssDen)
+            {
+                f_file<<std::get<0>(tup)*densityFactor<<" "<<std::get<1>(tup)*densityFactor<<" "<<std::get<2>(tup)*densityFactor<<" "<<std::get<3>(tup)*densityFactor<<" ";
+            }
+            
+            if(ddBase.simulationParameters.runID==0)
+            {
+                for(size_t kd=0;kd<ssDen.size();++kd)
+                {
+                    F_labels<<"SlipSystem_"<<kd<<" glissile density [m^-2]\n";
+                    F_labels<<"SlipSystem_"<<kd<<"sessile density [m^-2]\n";
+                    F_labels<<"SlipSystem_"<<kd<<"boundary density [m^-2]\n";
+                    F_labels<<"SlipSystem_"<<kd<<"grain boundary density [m^-2]\n";
+                }
+            }
+
+        }
+        
         if(this->outputPlasticDistortionPerSlipSystem)
         {
             const auto ssapd(slipSystemAveragePlasticDistortion());
@@ -1025,7 +1112,7 @@ else
                 
                 if (loopNodesPos.size())
                 {
-                    const auto polyInt(loop->periodicGlidePlane->polygonPatchIntersection(loopNodesPos)); // Note: last element of polyInt is always an internal node
+                    const auto polyInt(loop->periodicGlidePlane->polygonPatchIntersection(loopNodesPos,false)); // Note: last element of polyInt is always an internal node
                     // 2dPos,shift,edgeIDs ,set of edgeiD(all edges crossed),size_t(number of boundary nodes on same loop link after current node),LoopNodeType* (from loopNodesPos if internal, nullptr otherwise)
                     //edges still needed to be traversed will be reverse of the value if junction formation includes link in the opposite direction
                     std::map<const LoopNodeType *, size_t> polyIntMap; // ID of internal loopNodes into polyInt

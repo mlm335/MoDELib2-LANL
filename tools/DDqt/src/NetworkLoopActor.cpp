@@ -57,6 +57,13 @@ NetworkLoopActor::NetworkLoopActor(vtkGenericOpenGLRenderWindow* const renWin,vt
 /* init */,slippedAreaBox(new QGroupBox(tr("&Slipped Area")))
 /* init */,sliderSlippedArea(new QSlider(this))
 /* init */,meshAreaBox(new QGroupBox(tr("&Slipped Mesh")))
+/* init */,nodePolyData(vtkSmartPointer<vtkPolyData>::New())
+/* init */,nodeGlyphs(vtkSmartPointer<vtkGlyph3D>::New())
+/* init */,nodeMapper(vtkSmartPointer<vtkPolyDataMapper>::New())
+/* init */,nodeActor(vtkSmartPointer<vtkActor>::New())
+/* init */,labelPolyData(vtkSmartPointer<vtkPolyData>::New())
+/* init */,labelMapper(vtkSmartPointer<vtkLabeledDataMapper>::New())
+/* init */,labelActor(vtkSmartPointer<vtkActor2D>::New())
 /* init */,loopPolyData(vtkSmartPointer<vtkPolyData>::New())
 /* init */,loopMapper(vtkSmartPointer<vtkPolyDataMapper>::New())
 /* init */,loopActor(vtkSmartPointer<vtkActor>::New())
@@ -72,6 +79,28 @@ NetworkLoopActor::NetworkLoopActor(vtkGenericOpenGLRenderWindow* const renWin,vt
 /* init */,defectiveCrystal(defectiveCrystal_in)
 /* init */,dislocationNetwork(defectiveCrystal.template getUniqueTypedMicrostructure<DislocationNetwork<3,0>>())
 {
+    
+    nodeGlyphs->SetInputData(nodePolyData);
+    nodeGlyphs->SetSourceConnection(vtkSmartPointer<vtkSphereSource>::New()->GetOutputPort());
+    nodeGlyphs->ScalingOn();
+    nodeGlyphs->SetScaleModeToScaleByVector();
+    nodeGlyphs->SetScaleFactor(10);
+    nodeGlyphs->SetColorModeToColorByScalar();
+    nodeGlyphs->Update();
+    nodeMapper->SetInputConnection(nodeGlyphs->GetOutputPort());
+    nodeActor->SetMapper(nodeMapper);
+    nodeActor->SetVisibility(false);
+
+    // Labels
+    labelMapper->SetInputData(labelPolyData);
+    labelMapper->SetLabelModeToLabelScalars();
+    labelMapper->SetLabelFormat("%1.0f");
+    labelMapper->GetLabelTextProperty()->SetFontSize(20);
+    labelActor->SetMapper(labelMapper);
+    labelActor->GetProperty()->SetColor(0.0, 0.0, 0.0); //(R,G,B)
+    labelActor->SetVisibility(false);
+
+    
     showLoops->setChecked(false);
     showLoops->setText("Loops");
     
@@ -155,7 +184,8 @@ NetworkLoopActor::NetworkLoopActor(vtkGenericOpenGLRenderWindow* const renWin,vt
     meshActor->SetMapper ( meshMapper );
     meshActor->GetProperty()->SetOpacity(0.8); //Make the mesh have some transparency.
 
-    
+    renderer->AddActor(nodeActor);
+    renderer->AddActor(labelActor);
     renderer->AddActor(loopActor);
     renderer->AddActor(areaActor);
     renderer->AddActor(meshActor);
@@ -173,6 +203,10 @@ void NetworkLoopActor::updateConfiguration()
     if(dislocationNetwork)
     {
         vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+        vtkSmartPointer<vtkDoubleArray> nodeLabels(vtkSmartPointer<vtkDoubleArray>::New());
+        nodeLabels->SetNumberOfComponents(1);
+        nodeLabels->SetName("node IDs");
+
 //        std::map<size_t,size_t> loopNodesMap; // nodeID,nodePositionInDDauxIO
 //        size_t k=0;
         for(const auto& weakNode : dislocationNetwork->loopNodes())
@@ -180,9 +214,19 @@ void NetworkLoopActor::updateConfiguration()
             const auto& loopNode(weakNode.second.lock());
   //          loopNodesMap.emplace(loopNode->sID,k);
             const auto& P(loopNode->get_P());
-            points->InsertNextPoint(P(0),P(1),P(2));
+            points->InsertNextPoint(P.data());
+            nodeLabels->InsertNextTuple1(loopNode->sID);
   //          k++;
         }
+        
+        nodePolyData->SetPoints(points);
+//        nodePolyData->GetPointData()->SetScalars(nodeColors);
+        nodePolyData->Modified();
+
+        labelPolyData->SetPoints(points);
+        labelPolyData->GetPointData()->SetScalars(nodeLabels);
+        labelPolyData->Modified();
+
         
         vtkSmartPointer<vtkCellArray> cells(vtkSmartPointer<vtkCellArray>::New());
         for(const auto& loopLink : dislocationNetwork->loopLinks())
@@ -230,9 +274,7 @@ void NetworkLoopActor::updateConfiguration()
                 vtkNew<vtkPolygon> polygon;
                 for(const auto& globalPos : pair.second)
                 {
-                    areaPoints->InsertNextPoint(globalPos(0),
-                                                globalPos(1),
-                                                globalPos(2));
+                    areaPoints->InsertNextPoint(globalPos.data());
                     polygon->GetPointIds()->InsertNextId(areaPointID);
                     areaPointID++;
                 }
@@ -294,6 +336,12 @@ void NetworkLoopActor::updateConfiguration()
 
 void NetworkLoopActor::modify()
 {    
+    nodeGlyphs->SetScaleFactor(10);
+//    sliderNodeRadius->setEnabled(showNodes->isChecked());
+    nodeActor->SetVisibility(showLoops->isChecked());
+    labelActor->SetVisibility(showLoops->isChecked());
+
+    
     loopActor->SetVisibility(showLoops->isChecked());
     areaActor->SetVisibility(slippedAreaBox->isChecked());
     areaActor->GetProperty()->SetOpacity(sliderSlippedArea->value()/10.0);

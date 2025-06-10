@@ -34,6 +34,7 @@ struct ClusterDynamicsParameters
 
     typedef Eigen::Matrix<double,dim,1> VectorDim;
     typedef Eigen::Matrix<double,dim,dim> MatrixDim;
+    typedef typename Polycrystal<dim>::GrainContainerType GrainContainerType;
 
     // Materials parameters
     const double kB;
@@ -103,8 +104,8 @@ struct ClusterDynamicsParameters
     std::map<std::pair<int,int>,double> getMap(const Eigen::Array<double,mSize*(mSize+1)/2,3> matrix_in) const;
     Eigen::Matrix<double,mSize,mSize> getR1() const;
     std::vector<Eigen::Matrix<double,mSize,mSize>> getR2() const;
-    Eigen::Array<double,1,iSize/2> getImmobileSpeciesBurgersMagnitude(const std::map<size_t,Grain<dim>>& grains) const;
-    std::map<size_t,std::vector<Eigen::Matrix<double,dim,dim>>> getD(const std::map<size_t,Grain<dim>>& grains) const;
+    Eigen::Array<double,1,iSize/2> getImmobileSpeciesBurgersMagnitude(const GrainContainerType& grains) const;
+    std::map<size_t,std::vector<Eigen::Matrix<double,dim,dim>>> getD(const GrainContainerType& grains) const;
     std::vector<Eigen::Matrix<double,dim,dim>> getDlocal() const;
     std::map<size_t,std::vector<Eigen::Matrix<double,dim,dim>>> getInvD() const;
     std::map<size_t,Eigen::Array<double,mSize,1>> getDetD() const;

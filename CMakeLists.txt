@@ -2,7 +2,7 @@
 # https://mcilloni.ovh/2021/02/09/cxx-cross-clang/
 #export LDFLAGS=-L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib 
 #export LDFLAGS="$LDFLAGS -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib/system"
-# cmake .. -DCMAKE_CXX_COMPILER=clang++-mp-18 -DCMAKE_C_COMPILER=clang-mp-18
+# cmake .. -DCMAKE_CXX_COMPILER=clang++-mp-20 -DCMAKE_C_COMPILER=clang-mp-20
 
 cmake_minimum_required(VERSION 3.1.0)
 project(MoDELib VERSION 2.0.0 LANGUAGES C CXX)
@@ -11,13 +11,13 @@ option(USE_PYBIND11 "enables pybind11" ON)
 option(BUILD_TOOLS "builds tools" ON)
 set(EIGEN3_INCLUDE_DIRS /opt/local/include/eigen3)
 list(APPEND CMAKE_PREFIX_PATH "/Users/Giacomo/Applications/Qt/6.5.2/macos/lib/cmake")
-set(RPATH "/opt/local/lib/libgcc")
+set(RPATH "/opt/local/lib/gcc14")
 list(APPEND CMAKE_BUILD_RPATH ${RPATH})
 
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -march=native -fopenmp -Ofast -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-parameter") # -Wno-class-memaccess
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -march=native -fopenmp -O3 -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-parameter") # -Wno-class-memaccess
 #set(CMAKE_C_FLAGS "-Wall -Wextra -march=native -Ofast -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-parameter")
 #set(CMAKE_AUTOMOC ON)
 #set(CMAKE_AUTORCC ON)
@@ -107,7 +107,7 @@ include_directories(${MoDELib_INCLUDE_DIR}/PolycrystallineMaterials/)
 include_directories(${MoDELib_INCLUDE_DIR}/DislocationDynamicsIO/)
 include_directories(${MoDELib_INCLUDE_DIR}/DislocationMobilities/)
 include_directories(${MoDELib_INCLUDE_DIR}/DislocationDynamicsBase/)
-include_directories(${MoDELib_INCLUDE_DIR}/DislocationMicrostructure/)
+include_directories(${MoDELib_INCLUDE_DIR}/MicrostructureGeneration/)
 include_directories(${MoDELib_INCLUDE_DIR}/LoopNetwork/)
 include_directories(${MoDELib_INCLUDE_DIR}/ParticleInteraction/)
 include_directories(${MoDELib_INCLUDE_DIR}/SpaceDecomposition/)

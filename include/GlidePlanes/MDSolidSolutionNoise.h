@@ -36,14 +36,15 @@ namespace model
 
         MDSolidSolutionNoise(const PolycrystallineMaterialBase& mat,
                                     const std::string& tag, 
-                                    const std::string& correlationFile_L, const std::string& correlationFile_T,
+                                    const std::string& correlationFile_xz, const std::string& correlationFile_yz,
                                     const int& seed, const GridSizeType& gridSize, const GridSpacingType& gridSpacing,
+                                    const Eigen::Matrix<double,2,2>& latticeBasis,
                                     const double& a_Cai_in);
         
         
         std::array<COMPLEX,2> kCorrelations(const Eigen::Matrix<double,3,1>& kv,const Eigen::Matrix<int,3,1>& kvID) const override;
-        static GridSizeType readVTKfileDimension(const char *fname);
-        static void SolidSolutionCorrelationReader(const std::string& correlationFile, REAL_SCALAR *Rr_xz);
+        static void SolidSolutionCorrelationReader(const std::string& correlationFile, REAL_SCALAR* Rr, const int& NR);
+        static GridSizeType readVTKfileDimension(const char* fname);
     };
 
 }

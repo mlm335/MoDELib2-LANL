@@ -12,105 +12,111 @@
 
 namespace model
 {
-
     MDSolidSolutionNoise::MDSolidSolutionNoise(const PolycrystallineMaterialBase& mat,
                                                const std::string& tag,
-                                               const std::string& correlationFile_L,
-                                               const std::string& correlationFile_T,
+                                               const std::string& correlationFile_xz,
+                                               const std::string& correlationFile_yz,
                                                const int& seed,
                                                const GridSizeType& gridSize,
                                                const GridSpacingType& gridSpacing,
+                                               const Eigen::Matrix<double,2,2>& latticeBasis,
                                                const double& a_Cai_in
                                                ) :
-    /*init*/ GlidePlaneNoiseBase<2>("MDSolidSolutionNoise"+tag,seed,gridSize,gridSpacing)
+    /*init*/ GlidePlaneNoiseBase<2>("MDSolidSolutionNoise"+tag,seed,gridSize,gridSpacing,latticeBasis)
     /*init*/,a_cai(a_Cai_in)
     {
-        // allocate
-        REAL_SCALAR *Rr_xz = (REAL_SCALAR*) fftw_malloc(sizeof(REAL_SCALAR)*this->NR); //correlation in real space
-        REAL_SCALAR *Rr_yz = (REAL_SCALAR*) fftw_malloc(sizeof(REAL_SCALAR)*this->NR); //correlation in real space
-                
-        Rk_xz = (COMPLEX*) fftw_malloc(sizeof(COMPLEX)*this->NK); //correlation in fourier space
-        Rk_yz = (COMPLEX*) fftw_malloc(sizeof(COMPLEX)*this->NK); //correlation in fourier space
-        
-        // Initialize FFTW plans as member variables
-        fftw_plan plan_R_xz_r2c = fftw_plan_dft_r2c_2d(this->NY, this->NX, Rr_xz, reinterpret_cast<fftw_complex*>(Rk_xz), FFTW_ESTIMATE);
-        fftw_plan plan_R_yz_r2c = fftw_plan_dft_r2c_2d(this->NY, this->NX, Rr_yz, reinterpret_cast<fftw_complex*>(Rk_yz), FFTW_ESTIMATE);
-        
-        const auto originalDimensionsL(readVTKfileDimension(correlationFile_L.c_str()));
-        const auto originalDimensionsT(readVTKfileDimension(correlationFile_T.c_str()));
-        if((originalDimensionsL-originalDimensionsT).matrix().squaredNorm()>0)
+        // read the dimensions of the original correlation sampled from MD
+        const auto originalDimensions_xz(readVTKfileDimension(correlationFile_xz.c_str()));
+        const auto originalDimensions_yz(readVTKfileDimension(correlationFile_yz.c_str()));
+
+        if((originalDimensions_xz-originalDimensions_yz).matrix().squaredNorm()>0)
         {
-            throw std::runtime_error("correlationFile_L and correlationFile_T have different grid sizes.");
+            throw std::runtime_error("correlationFile_xz and correlationFile_yz have different grid sizes.");
         }
-        const int originalNX = originalDimensionsL(0);
-        const int originalNY = originalDimensionsL(1);
-        if(originalDimensionsL(2)!=1)
+
+        if(originalDimensions_xz(2)!=1 || originalDimensions_yz(2)!=1)
         {
-            throw std::runtime_error("vtk correlationFiles 'DIMENSIONS' should have 3rd component == 1.");
+            throw std::runtime_error("vtk solid solution correlationFiles 'DIMENSIONS' should have 3rd component == 1.");
         }
-        
-        REAL_SCALAR *Rr_xz_original = (REAL_SCALAR*) fftw_malloc(sizeof(REAL_SCALAR)*originalNX*originalNY); //correlation in real space
-        REAL_SCALAR *Rr_yz_original = (REAL_SCALAR*) fftw_malloc(sizeof(REAL_SCALAR)*originalNX*originalNY); //correlation in real space
-                
-        // populate Rr_xy_original with the correlation data
-        SolidSolutionCorrelationReader(correlationFile_L, Rr_xz_original);
-        SolidSolutionCorrelationReader(correlationFile_T, Rr_yz_original);
-                
+
+        const int originalNX = originalDimensions_xz(0);
+        const int originalNY = originalDimensions_xz(1);
+        const int originalNR = originalNX*originalNY;
+
+        REAL_SCALAR *Rr_xz_original = (REAL_SCALAR*) fftw_malloc(sizeof(REAL_SCALAR)*originalNR);
+        REAL_SCALAR *Rr_yz_original = (REAL_SCALAR*) fftw_malloc(sizeof(REAL_SCALAR)*originalNR);
+        // explicitly initialize to zeros, avoid garbarge propagation
+        std::fill(Rr_xz_original, Rr_xz_original+originalNR, REAL_SCALAR{0.0});
+        std::fill(Rr_yz_original, Rr_yz_original+originalNR, REAL_SCALAR{0.0});
+
+        // populate Rr_original with the correlation data from MD
+        SolidSolutionCorrelationReader(correlationFile_xz, Rr_xz_original, originalNR);
+        SolidSolutionCorrelationReader(correlationFile_yz, Rr_yz_original, originalNR);
+
         // Divide the values in Rr_xz_original and Rr_yz_original by mat.mu^2
-        for (int i = 0; i < originalNX * originalNY; ++i)
+        for (int i = 0; i < originalNR; ++i)
         {
             Rr_xz_original[i] /= (mat.mu_SI*mat.mu_SI); // divide by mu^2
             Rr_yz_original[i] /= (mat.mu_SI*mat.mu_SI); // divide by mu^2
         }
-        
-        int start_y = (this->NY - originalNY) / 2;
-        int start_x = (this->NX - originalNX) / 2;
-        
-        // // initialize with zeros
-        for (int i = 0; i < this->NY; ++i)
+
+        // allocate real space correlation
+        REAL_SCALAR *Rr_xz = (REAL_SCALAR*) fftw_malloc(sizeof(REAL_SCALAR)*this->NR);
+        std::fill(Rr_xz, Rr_xz+this->NR, REAL_SCALAR{0.0});
+        REAL_SCALAR *Rr_yz = (REAL_SCALAR*) fftw_malloc(sizeof(REAL_SCALAR)*this->NR);
+        std::fill(Rr_yz, Rr_yz+this->NR, REAL_SCALAR{0.0});
+
+        // if the assigned grid size is the same as the actual data
+        if(this->NR == originalNX*originalNY)
         {
-            for (int j = 0; j < this->NX; ++j)
-            {
-                Rr_xz[i*this->NX + j] = 0;
-                Rr_yz[i*this->NX + j] = 0;
-            }
+          // point to the same memory location
+          Rr_xz = Rr_xz_original;
+          Rr_yz = Rr_yz_original;
         }
-        
-        // 0-pading from centere
-        for (int i = 0; i < originalNY; ++i)
+        // pad with zeros if the assigned grid size is larger than the actual data grid size
+        else
         {
+          int start_y = (this->NY - originalNY) / 2;
+          int start_x = (this->NX - originalNX) / 2;
+          // 0-pading from centere
+          for (int i = 0; i < originalNY; ++i)
+          {
             for (int j = 0; j < originalNX; ++j)
             {
-                Rr_xz[(start_y + i) * this->NX + (start_x + j)] = Rr_xz_original[i * originalNX + j];
-                Rr_yz[(start_y + i) * this->NX + (start_x + j)] = Rr_yz_original[i * originalNX + j];
+              Rr_xz[(start_y + i) * this->NX + (start_x + j)] = Rr_xz_original[i * originalNX + j];
+              Rr_yz[(start_y + i) * this->NX + (start_x + j)] = Rr_yz_original[i * originalNX + j];
             }
+          }
+          // Free allocated memory
+          fftw_free(Rr_xz_original);
+          fftw_free(Rr_yz_original);
         }
-                
-        plan_R_xz_r2c = fftw_plan_dft_r2c_2d(this->NY, this->NX, Rr_xz_original, reinterpret_cast<fftw_complex*>(Rk_xz), FFTW_ESTIMATE);
-        plan_R_yz_r2c = fftw_plan_dft_r2c_2d(this->NY, this->NX, Rr_yz_original, reinterpret_cast<fftw_complex*>(Rk_yz), FFTW_ESTIMATE);
-                
+
+        // initialize the correlation in fourier space
+        Rk_xz = (COMPLEX*) fftw_malloc(sizeof(COMPLEX)*this->NK);
+        std::fill(Rk_xz, Rk_xz+this->NK, COMPLEX{0.0, 0.0});
+        Rk_yz = (COMPLEX*) fftw_malloc(sizeof(COMPLEX)*this->NK);
+        std::fill(Rk_yz, Rk_yz+this->NK, COMPLEX{0.0, 0.0});
+
+        // Initialize FFTW plans as member variables
+        fftw_plan plan_R_xz_r2c = fftw_plan_dft_r2c_2d(this->NY, this->NX, Rr_xz, reinterpret_cast<fftw_complex*>(Rk_xz), FFTW_ESTIMATE);
+        fftw_plan plan_R_yz_r2c = fftw_plan_dft_r2c_2d(this->NY, this->NX, Rr_yz, reinterpret_cast<fftw_complex*>(Rk_yz), FFTW_ESTIMATE);
+
         // Execute FFTW plans to populate Rk_xz and Rk_yz
         fftw_execute(plan_R_xz_r2c);
         fftw_execute(plan_R_yz_r2c);
-        
+
         // Normalize the FFT output
-        for (int i = 0; i < this->NX; ++i)
+        for (int i = 0; i < this->NK; ++i)
         {
-            for (int j = 0; j < (this->NY/2 + 1); ++j)
-            {
-                Rk_xz[i * (this->NY/2 + 1) + j] /= (this->NX * this->NY);
-                Rk_yz[i * (this->NY/2 + 1) + j] /= (this->NX * this->NY);
-            }
+          Rk_xz[i] /= static_cast<double>(this->NR);
+          Rk_yz[i] /= static_cast<double>(this->NR);
         }
-        
+
         // Destroy FFTW plans
         fftw_destroy_plan(plan_R_xz_r2c);
         fftw_destroy_plan(plan_R_yz_r2c);
-        
-        // Free allocated memory
-        fftw_free(Rr_xz_original);
-        fftw_free(Rr_yz_original);
-        
+
         // Free allocated memory
         fftw_free(Rr_xz);
         fftw_free(Rr_yz);
@@ -131,15 +137,15 @@ namespace model
         return temp;
     }
 
-    void MDSolidSolutionNoise::SolidSolutionCorrelationReader(const std::string& correlationFile, REAL_SCALAR *Rr_xz)
+    void MDSolidSolutionNoise::SolidSolutionCorrelationReader(const std::string& correlationFile, REAL_SCALAR* Rr, const int& NR)
     {
-        std::cout << "Reading solid solution correlation (xz)" << std::endl;
+        std::cout << "Reading solid solution correlation" << std::endl;
         
         std::ifstream vtkFile(correlationFile); //access vtk file
         // error check
         if (!vtkFile.is_open())
         {
-            throw std::runtime_error("Error opening solid solution VTK Sxz correlation file!");
+            throw std::runtime_error("Error opening solid solution VTK correlation file!");
         }
         
         std::string line;
@@ -152,8 +158,6 @@ namespace model
                 // get the number of points in the file
                 const size_t firstSpace(line.find(' '));
                 const size_t numOfPoints = std::atoi(line.substr(firstSpace+1).c_str());
-                std::cout << "Number of points: " << numOfPoints << std::endl;
-                
                 // read the point coordinates
                 for(size_t n=0; n<numOfPoints+numOfHeaders; ++n)
                 {
@@ -162,8 +166,25 @@ namespace model
                     if(n<numOfHeaders)
                         continue;
                     const int ind = n-numOfHeaders;
-                    //correlationCoeffs.push_back(std::atoi(line.c_str()));
-                    Rr_xz[ind] = std::atof(line.c_str());
+
+                    if (ind >= NR)
+                    {
+                      throw std::runtime_error("Index out of bounds while populating the original correlation array.");
+                    }
+
+                    try
+                    {
+                      double value = std::stod(line);
+                      Rr[ind] = value;
+                    }
+                    catch(const std::invalid_argument& e) 
+                    {
+                      std::cerr << "Invalid correlation data in line: " << line << std::endl;
+                    }
+                    catch(const std::out_of_range& e)
+                    {
+                      std::cerr << "Out of range correlation value in line: " << line << std::endl;
+                    }
                 }
             }
         }

@@ -175,6 +175,12 @@ typename DislocationNode<dim,corder>::VectorDim DislocationNode<dim,corder>::cli
                     temp.push_back(face->asPlane().unitNormal);
                 }
             }
+            
+            for(int r=0;r<this->network().nodalVelocityConstraints.rows();++r)
+            {
+                temp.push_back(this->network().nodalVelocityConstraints.row(r));
+            }
+            
 
             GramSchmidt::orthoNormalize(temp);
             

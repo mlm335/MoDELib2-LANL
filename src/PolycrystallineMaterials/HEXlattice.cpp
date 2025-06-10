@@ -18,54 +18,19 @@
 namespace model
 {
     
-        
-        HEXlattice<3>::HEXlattice(const MatrixDim& Q,const PolycrystallineMaterialBase& material,const std::string& polyFile) :
-        /* init */ SingleCrystalBase<dim>(getLatticeBasis(),Q)
-        /* init */,PlaneNormalContainerType(getPlaneNormals(material,polyFile))
-        /* init */,SlipSystemContainerType(getSlipSystems(material,*this))
-        /* init */,SecondPhaseContainerType(getSecondPhases(material,*this))
-        {
-            
-        }
-        
         Eigen::Matrix<double,3,3> HEXlattice<3>::getLatticeBasis()
         {/*!\returns The matrix of lattice vectors (cartesian cooridinates in columns),
           * in units of the crystallographic Burgers vector.
           */
-            
             Eigen::Matrix<double,dim,dim> temp;
             temp << 1.0, 0.5,           0.0,
             /*   */ 0.0, 0.5*sqrt(3.0), 0.0,
             /*   */ 0.0, 0.0,           sqrt(8.0/3.0);
-            
             return temp;
         }
-
-    const typename HEXlattice<3>::PlaneNormalContainerType& HEXlattice<3>::planeNormals() const
-    {
-        return *this;
-    }
-
-    const typename HEXlattice<3>::SlipSystemContainerType& HEXlattice<3>::slipSystems() const
-    {
-        return *this;
-    }
-
-    const typename HEXlattice<3>::SecondPhaseContainerType& HEXlattice<3>::secondPhases() const
-    {
-        return *this;
-    }
-
-
-//    const typename HEXlattice<3>::DislocationMobilityContainerType& dislocationMobilities() const
-//    {
-//        return *this;
-//    }
-
-
         
-        std::vector<std::shared_ptr<GlidePlaneBase>> HEXlattice<3>::getPlaneNormals(const PolycrystallineMaterialBase& material,
-                                                                                    const std::string& ) const
+typename HEXlattice<3>::PlaneNormalContainerType HEXlattice<3>::planeNormals(const PolycrystallineMaterialBase& material,
+                                                                             const Lattice<dim>& lat)
         {/*!\returns a std::vector of ReciprocalLatticeDirection(s) corresponding
           * the slip plane normals of the HEX lattice
           */
@@ -78,22 +43,22 @@ namespace model
             typedef Eigen::Matrix<long int,dim,1> VectorDimI;
             
             typedef LatticeVector<dim> LatticeVectorType;
-            LatticeVectorType a1((VectorDimI()<<1,0,0).finished(),*this);
-            LatticeVectorType a2((VectorDimI()<<0,1,0).finished(),*this);
+            LatticeVectorType a1((VectorDimI()<<1,0,0).finished(),lat);
+            LatticeVectorType a2((VectorDimI()<<0,1,0).finished(),lat);
             LatticeVectorType a3(a2-a1);
-            LatticeVectorType  c((VectorDimI()<<0,0,1).finished(),*this);
+            LatticeVectorType  c((VectorDimI()<<0,0,1).finished(),lat);
 
-            std::vector<std::shared_ptr<GlidePlaneBase>> temp;
+            PlaneNormalContainerType temp;
             if(enableBasalPlanes)
             {
-                const double ISF(TextFileParser(material.materialFile).readScalar<double>("ISF_SI",true)/(material.mu_SI*material.b_SI));
-                const double USF(TextFileParser(material.materialFile).readScalar<double>("USF_SI",true)/(material.mu_SI*material.b_SI));
-                const double MSF(TextFileParser(material.materialFile).readScalar<double>("MSF_SI",true)/(material.mu_SI*material.b_SI));
+                
+                const double ISF(TextFileParser(material.materialFile).readScalar<double>("basalISF_SI",true)/(material.mu_SI*material.b_SI));
+                const double USF(TextFileParser(material.materialFile).readScalar<double>("basalUSF_SI",true)/(material.mu_SI*material.b_SI));
+                const double MSF(TextFileParser(material.materialFile).readScalar<double>("basalMSF_SI",true)/(material.mu_SI*material.b_SI));
                 
                 const Eigen::Matrix<double,3,2> waveVectors((Eigen::Matrix<double,3,2>()<<0.0, 0.0,
                                                              /*                        */ 0.0, 1.0,
-    //                                                         /*                        */ 1.0,-1.0
-                                                             /*                        */ 1.0,1.0
+                                                             /*                        */ 1.0,-1.0
                                                              ).finished());
                 
                 const Eigen::Matrix<double,4,3> f((Eigen::Matrix<double,4,3>()<<0.00,0.0, 0.0,
@@ -103,35 +68,48 @@ namespace model
                 
                 const int rotSymm(3);
                 const std::vector<Eigen::Matrix<double,2,1>> mirSymm;
-                const Eigen::Matrix<double,2,2> A((Eigen::Matrix<double,2,2>()<< 1.0,-0.5,
-                                                                                 0.0,0.5*std::sqrt(3.0)).finished());
-
+                const Eigen::Matrix<double,2,2> A(GlidePlaneBase(a1,a2,nullptr).localBasis());
+                                
                 std::shared_ptr<GammaSurface> gammaSurface(new GammaSurface(A,waveVectors,f,rotSymm,mirSymm));
-                temp.emplace_back(new GlidePlaneBase(a1,a2,gammaSurface));           // basal plane
+                temp.emplace(temp.size(),new GlidePlaneBase(a1,a2,gammaSurface));           // basal plane
+
             }
 
             if(enablePrismaticPlanes)
             {
-                temp.emplace_back(new GlidePlaneBase(a1     ,c,nullptr));           // prismatic plane
-                temp.emplace_back(new GlidePlaneBase(a3     ,c,nullptr));           // prismatic plane
-                temp.emplace_back(new GlidePlaneBase(a2*(-1),c,nullptr));           // prismatic plane
+                Eigen::Matrix<double,Eigen::Dynamic,2> waveVectors(TextFileParser(material.materialFile).readMatrixCols<double>("prismaticWaveVectors",2,true));
+                Eigen::Matrix<double,Eigen::Dynamic,3> fr(TextFileParser(material.materialFile).readMatrixCols<double>("prismaticGammaSurfacePoints",3,true));
+                const Eigen::Matrix<double,2,2> A(GlidePlaneBase(a1,c,nullptr).localBasis());
+                Eigen::Matrix<double,Eigen::Dynamic,3> f(fr);
+                f.block(0,0,fr.rows(),2)=(A*fr.block(0,0,fr.rows(),2).transpose()).transpose();
+                f.col(2)=fr.col(2)/(material.mu_SI*material.b_SI);
+                const int rotSymm(1);
+                std::vector<Eigen::Matrix<double,2,1>> mirSymm;
+                mirSymm.push_back((Eigen::Matrix<double,2,1>()<<1.0,0.0).finished()); // symm with respect to local y-axis
+                mirSymm.push_back((Eigen::Matrix<double,2,1>()<<0.0,1.0).finished()); // symm with respect to local x-axis
+
+                std::shared_ptr<GammaSurface> gammaSurface(new GammaSurface(A,waveVectors,f,rotSymm,mirSymm));
+                temp.emplace(temp.size(),new GlidePlaneBase(a1     ,c,gammaSurface));           // prismatic plane
+                temp.emplace(temp.size(),new GlidePlaneBase(a3     ,c,gammaSurface));           // prismatic plane
+                temp.emplace(temp.size(),new GlidePlaneBase(a2*(-1),c,gammaSurface));           // prismatic plane
             }
             
             if(enablePyramidalPlanes)
             {
-                temp.emplace_back(new GlidePlaneBase(a1     ,a2+c,nullptr));         // pyramidal plane
-                temp.emplace_back(new GlidePlaneBase(a2     ,a3+c,nullptr));         // pyramidal plane
-                temp.emplace_back(new GlidePlaneBase(a3     ,c-a1,nullptr));        // pyramidal plane
-                temp.emplace_back(new GlidePlaneBase(a1*(-1),c-a2,nullptr));       // pyramidal plane
-                temp.emplace_back(new GlidePlaneBase(a2*(-1),c-a3,nullptr));       // pyramidal plane
-                temp.emplace_back(new GlidePlaneBase(a3*(-1),a1+c,nullptr));        // pyramidal plane
+                temp.emplace(temp.size(),new GlidePlaneBase(a1     ,a2+c,nullptr));         // pyramidal plane
+                temp.emplace(temp.size(),new GlidePlaneBase(a2     ,a3+c,nullptr));         // pyramidal plane
+                temp.emplace(temp.size(),new GlidePlaneBase(a3     ,c-a1,nullptr));        // pyramidal plane
+                temp.emplace(temp.size(),new GlidePlaneBase(a1*(-1),c-a2,nullptr));       // pyramidal plane
+                temp.emplace(temp.size(),new GlidePlaneBase(a2*(-1),c-a3,nullptr));       // pyramidal plane
+                temp.emplace(temp.size(),new GlidePlaneBase(a3*(-1),a1+c,nullptr));        // pyramidal plane
             }
             
             return temp;
         }
         
-        std::vector<std::shared_ptr<SlipSystem>> HEXlattice<3>::getSlipSystems(const PolycrystallineMaterialBase& material,
-                                                                               const PlaneNormalContainerType& plN) const
+typename HEXlattice<3>::SlipSystemContainerType HEXlattice<3>::slipSystems(const PolycrystallineMaterialBase& material,
+                                                                              const Lattice<dim>& lat,
+                                                                              const PlaneNormalContainerType& plN)
         {/*!\returns a std::vector of ReciprocalLatticeDirection(s) corresponding
           * the slip systems of the Hexagonal lattice
           */
@@ -149,34 +127,26 @@ namespace model
             DislocationMobilitySelector mobilitySelectorPyramidal("HEXpyramidal");
             const std::shared_ptr<DislocationMobilityBase> hexMobilityPyramidal(mobilitySelectorPyramidal.getMobility(dislocationMobilityTypePyramidal,material));
 
-//            const int solidSolutionNoiseMode(TextFileParser(material.materialFile).readScalar<int>("solidSolutionNoiseMode",true));
-//            const int stackingFaultNoiseMode(TextFileParser(material.materialFile).readScalar<int>("stackingFaultNoiseMode",true));
             std::shared_ptr<GlidePlaneNoise> planeNoise(new GlidePlaneNoise(material));
-
-            
             
             typedef Eigen::Matrix<long int,dim,1> VectorDimI;
             typedef LatticeVector<dim> LatticeVectorType;
             typedef ReciprocalLatticeDirection<dim> ReciprocalLatticeDirectionType;
-            LatticeVectorType a1((VectorDimI()<<1,0,0).finished(),*this);
-            LatticeVectorType a2((VectorDimI()<<0,1,0).finished(),*this);
-//            LatticeVectorType a3(a2-a1);
-            LatticeVectorType  c((VectorDimI()<<0,0,1).finished(),*this);
+            LatticeVectorType a1((VectorDimI()<<1,0,0).finished(),lat);
+            LatticeVectorType a2((VectorDimI()<<0,1,0).finished(),lat);
+            LatticeVectorType  c((VectorDimI()<<0,0,1).finished(),lat);
 
-            
-
-            
             const double     dBasal(ReciprocalLatticeDirectionType(a1.cross(a2)).planeSpacing());
             const double dPrismatic(ReciprocalLatticeDirectionType(a1.cross(c)).planeSpacing());
             const double dPyramidal(ReciprocalLatticeDirectionType(a1.cross(a2+c)).planeSpacing());
             
-            std::vector<std::shared_ptr<SlipSystem>> temp;
+            SlipSystemContainerType temp;
             for(const auto& planeBase : plN)
             {
-                if(std::fabs(planeBase->planeSpacing()-dBasal)<FLT_EPSILON)
+                if(std::fabs(planeBase.second->planeSpacing()-dBasal)<FLT_EPSILON)
                 {
-                    const auto& a1(planeBase->primitiveVectors.first);
-                    const auto& a2(planeBase->primitiveVectors.second);
+                    const auto& a1(planeBase.second->primitiveVectors.first);
+                    const auto& a2(planeBase.second->primitiveVectors.second);
 
                     const auto b1(a1);
                     const auto b2(a2);
@@ -208,14 +178,14 @@ namespace model
                     
                     for(const auto& slipDir : slipDirs)
                     {
-                        temp.emplace_back(new SlipSystem(*planeBase, slipDir,hexMobilityBasal,planeNoise));
+                        temp.emplace(temp.size(),new SlipSystem(*planeBase.second, slipDir,hexMobilityBasal,planeNoise));
                     }
                     
                 }
                 
-                if(std::fabs(planeBase->planeSpacing()-dPrismatic)<FLT_EPSILON)
+                if(std::fabs(planeBase.second->planeSpacing()-dPrismatic)<FLT_EPSILON)
                 {
-                    const auto& b(planeBase->primitiveVectors.first);
+                    const auto& b(planeBase.second->primitiveVectors.first);
                     std::vector<RationalLatticeDirection<3>> slipDirs;
 
                     if(material.enabledSlipSystems.find("fullPrismatic")!=material.enabledSlipSystems.end())
@@ -227,13 +197,13 @@ namespace model
                     
                     for(const auto& slipDir : slipDirs)
                     {
-                        temp.emplace_back(new SlipSystem(*planeBase, slipDir,hexMobilityPrismatic,planeNoise));
+                        temp.emplace(temp.size(),new SlipSystem(*planeBase.second, slipDir,hexMobilityPrismatic,planeNoise));
                     }
                 }
                 
-                if(std::fabs(planeBase->planeSpacing()-dPyramidal)<FLT_EPSILON)
+                if(std::fabs(planeBase.second->planeSpacing()-dPyramidal)<FLT_EPSILON)
                 {
-                    const auto& b(planeBase->primitiveVectors.first);
+                    const auto& b(planeBase.second->primitiveVectors.first);
                     std::vector<RationalLatticeDirection<3>> slipDirs;
 
                     if(material.enabledSlipSystems.find("fullPyramidal")!=material.enabledSlipSystems.end())
@@ -245,20 +215,20 @@ namespace model
                     
                     for(const auto& slipDir : slipDirs)
                     {
-                        temp.emplace_back(new SlipSystem(*planeBase, slipDir,hexMobilityPyramidal,planeNoise));
+                        temp.emplace(temp.size(),new SlipSystem(*planeBase.second, slipDir,hexMobilityPyramidal,planeNoise));
                     }
                 }
                 
             }
-                
-            
+    
             return temp;
         }
         
         
 
-typename HEXlattice<3>::SecondPhaseContainerType HEXlattice<3>::getSecondPhases(const PolycrystallineMaterialBase& material,
-                                                                            const PlaneNormalContainerType& ) const
+typename HEXlattice<3>::SecondPhaseContainerType HEXlattice<3>::secondPhases(const PolycrystallineMaterialBase& material,
+                                                                                const Lattice<dim>& lat,
+                                                                                const PlaneNormalContainerType& plN)
     {
         SecondPhaseContainerType temp;
 

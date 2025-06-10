@@ -130,11 +130,13 @@ namespace model
         bool outputLoopLength;
         bool outputSegmentPairDistances;
         const bool outputPlasticDistortionPerSlipSystem;
+        const bool outputDislocationDensityPerSlipSystem;
         const bool computeElasticEnergyPerLength;
         double alphaLineTension;
         std::set<const LoopNodeType*> danglingBoundaryLoopNodes;
         const bool use_velocityFilter;
         const double velocityReductionFactor;
+        const Eigen::Matrix<double,Eigen::Dynamic,dim> nodalVelocityConstraints;
         
         
         const int verboseDislocationNode;
@@ -161,6 +163,7 @@ namespace model
         MatrixDim averagePlasticStrainRate() const;
         void updateGeometry();//
         std::tuple<double,double,double,double> networkLength() const;
+        std::vector<std::tuple<double,double,double,double>> networkLengthPerSlipSystem() const;
         bool isClimbStep() const;
         const std::shared_ptr<InclusionMicrostructure<dim>>&  inclusions() const;
 
