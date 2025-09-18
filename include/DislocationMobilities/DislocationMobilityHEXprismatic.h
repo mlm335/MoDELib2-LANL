@@ -30,6 +30,7 @@ namespace model
         const double B1s;
         const double Bk;
         const double dH0;
+        const double dE0;
         const double p;
         const double q;
         const double T0;
@@ -48,6 +49,7 @@ namespace model
                             const double& B0s_SI, const double& B1s_SI,
                             const double& Bk_SI,
                             const double& dH0_SI,
+                            const double& dE0_SI,
                             const double& p_in,
                             const double& q_in,
                             const double& T0_in,
@@ -70,7 +72,13 @@ namespace model
                         const double& T,
                         const double& dL,
                         const double& dt,
-                        const std::shared_ptr<StochasticForceGenerator>& sfg) override;
+                        const std::shared_ptr<StochasticForceGenerator>& sfg) ;
+
+        double velocity(const MatrixDim& S,
+                        const VectorDim& b,
+                        const VectorDim& xi,
+                        const VectorDim& n,
+                        const double& T) ;
         
     };
     

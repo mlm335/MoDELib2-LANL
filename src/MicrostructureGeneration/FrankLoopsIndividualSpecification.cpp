@@ -27,6 +27,7 @@ namespace model
             loopRadii=this->parser->readArray<double>("loopRadii_SI",true);
             loopCenters=this->parser->readMatrix<double>("loopCenters",planeIDs.size(),3,true);
             loopSides=this->parser->readArray<int>("loopSides",true);
+            burgersFactor=this->parser->readArray<double>("burgersFactor",true);
             isVacancyLoop=this->parser->readArray<int>("isVacancyLoop",true);
         }
     }

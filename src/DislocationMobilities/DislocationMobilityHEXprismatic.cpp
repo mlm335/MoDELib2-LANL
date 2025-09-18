@@ -25,6 +25,7 @@ namespace model
                             const double& B0s_SI, const double& B1s_SI,
                             const double& Bk_SI,
                             const double& dH0_SI,
+                            const double& dE0_SI,
                             const double& p_in,
                             const double& q_in,
                             const double& T0_in,
@@ -42,6 +43,7 @@ namespace model
         /* init */ B1s(B1s_SI*cs_SI/(mu_SI*b_SI)),
         /* init */ Bk(  Bk_SI*cs_SI/(mu_SI*b_SI)),
         /* init */ dH0(dH0_SI),
+        /* init */ dE0(dE0_SI), 
         /* init */ p(p_in),
         /* init */ q(q_in),
         /* init */ T0(T0_in),
@@ -67,6 +69,7 @@ namespace model
         /* init */ B1s(TextFileParser(material.materialFile).readScalar<double>("B1s_SI_p",true)*material.cs_SI/(material.mu_SI*material.b_SI)),
         /* init */ Bk (TextFileParser(material.materialFile).readScalar<double>("Bk_SI_p", true)*material.cs_SI/(material.mu_SI*material.b_SI)),
         /* init */ dH0(TextFileParser(material.materialFile).readScalar<double>("dH0_eV_p",true)),
+        /* init */ dE0(TextFileParser(material.materialFile).readScalar<double>("dE0_eV_p",true)),        
         /* init */ p(TextFileParser(material.materialFile).readScalar<double>("p_p",true)),
         /* init */ q(TextFileParser(material.materialFile).readScalar<double>("q_p",true)),
         /* init */ T0(TextFileParser(material.materialFile).readScalar<double>("Tf_p",true)*material.Tm),
@@ -86,7 +89,18 @@ namespace model
         {
             return 2.0/(1.0+exp(2.0*x));
         }
+
         
+        /**********************************************************************/
+        double DislocationMobilityHEXprismatic::velocity(const MatrixDim& S,
+                                            const VectorDim& b,
+                                            const VectorDim& xi,
+                                            const VectorDim& n,
+                                            const double& T)
+        {
+            return velocity(S,b,xi,n,T,0.0,0.0,nullptr);
+        }
+
         /**********************************************************************/
         double DislocationMobilityHEXprismatic::velocity(const MatrixDim& S,
                         const VectorDim& b,
@@ -114,21 +128,26 @@ namespace model
             assert(den>0.0 && "den must be > 0.");
             
             const double Theta=num/den;
-            const double dg = (Theta<1.0)? (std::pow(1.0-std::pow(Theta,p),q)-T/T0) : 0.0;
+            const double dg = (Theta<1.0)? (std::pow(1.0-std::pow(Theta,p),q)-T/T0+dE0/dH0) : 0.0;
             const double dg1 = (dg>0.0)? dg : 0.0;
             const double expCoeff = exp(-dH0*dg1/(2.0*kB_eV*T));
             
             // Compute screw drag coeff
-            const double sgm=0.5*sigmoid(-0.5*(0.05-dg1)/0.01);
+            const double sgm=0.5*sigmoid(-0.5*(0.05-dg1)/0.01); // DOES NOT GIVE ME 1.0 WHEN dg1=0.0 !!!!!!!!!!!!
             const double Bs=Bk*w/(2.0*h)*(1.0-sgm)+(B0s+B1s*T)*sgm; //kink-dominated to drag-dominated interpolation
             
+
             // Compute screw velocity
             double vs=std::fabs(tau)*bNorm/Bs*expCoeff;
             
             // Compute edge velocity
             double ve=std::fabs(tau)*bNorm/(B0e+B1e*T);
 
-            
+            // Outputs for checking calculations
+            // std::cout << "Theta: " << Theta << ", dg: " << dg << ", dg1: " << dg1 << ", expCoeff: " << expCoeff << std::endl;
+            // std::cout << "Bk: " << Bk << ", w: " << w << ", h: " << h << ", sgm: " << sgm << ", B0s: " << B0s << ", B1s: " << B1s <<", T: " << T << std::endl;
+            // std::cout << "tau: " << tau << ", b: " << bNorm << ", dg: " << dg << ", expCoeff: " << expCoeff << ", Bs: " << Bs << std::endl;
+
             if(sfg)
             {
                 ve+=sfg->stochasticVelocity(kB,T,B0e+B1e*T,dL,dt);

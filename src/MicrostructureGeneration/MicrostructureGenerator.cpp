@@ -27,6 +27,9 @@
 #include <FrankLoopsGenerator.h>
 #include <PlanarLoopGenerator.h>
 #include <ClusterDynamicsParameters.h>
+#include <aLoopGenerator.h>
+// #include <FRSourceGenerator.h>
+#include <IrradiationPrismaticLoopGenerator.h>
 
 namespace model
 {
@@ -150,6 +153,30 @@ namespace model
         CrackMeshGenerator gen(spec,*this);
     }
 
+    void MicrostructureGenerator::addaLoopDensity(const aLoopDensitySpecification& spec)
+    {
+        aLoopGenerator gen(spec,*this);
+    }
+
+    void MicrostructureGenerator::addaLoopIndividual(const aLoopIndividualSpecification& spec)
+    {
+        aLoopGenerator gen(spec,*this);
+    }
+
+    // void MicrostructureGenerator::addFRsourceDensity(const FRSourceDensitySpecification& spec)
+    // {
+    //     FRSourceGenerator gen(spec,*this);
+    // }
+
+    void MicrostructureGenerator::addIrradiationPrismaticLoopDensity(const IrradiationPrismaticLoopDensitySpecification& spec)
+    {
+        IrradiationPrismaticLoopGenerator gen(spec,*this);
+    }
+
+    void MicrostructureGenerator::addIrradiationPrismaticLoopIndividual(const IrradiationPrismaticLoopIndividualSpecification& spec)
+    {
+        IrradiationPrismaticLoopGenerator gen(spec,*this);
+    }
 
     void MicrostructureGenerator::readMicrostructureFile()
     {
@@ -313,6 +340,52 @@ namespace model
                 {
                     CrackMeshIndividualSpecification spec(microstructureFileName);
                     addCrackMeshIndividual(spec);
+                }
+                else
+                {
+                    throw std::runtime_error("Unkown style "+style+" for "+type);
+                }
+            }
+            else if(type=="aLoops")
+            {
+                if(style=="Density" || style=="density")
+                {
+                    aLoopDensitySpecification spec(microstructureFileName);
+                    addaLoopDensity(spec);
+                }
+                else if(style=="Individual" || style=="individual")
+                {
+                    aLoopIndividualSpecification spec(microstructureFileName);
+                    addaLoopIndividual(spec);
+                }
+                else
+                {
+                    throw std::runtime_error("Unkown style "+style+" for "+type);
+                }
+            }
+            // else if(type=="FRSource")
+            // {
+            //     if(style=="Individual" || style=="individual")
+            //     {
+            //         throw std::runtime_error("Unkown style "+style+" for "+type);
+            //     }
+            //     else
+            //     {
+            //         FRSourceDensitySpecification spec(microstructureFileName);
+            //         addFRsourceDensity(spec);
+            //     }
+            // }
+            else if(type=="IrradiationPrismaticLoop")
+            {
+                if(style=="Density" || style=="density")
+                {
+                    IrradiationPrismaticLoopDensitySpecification spec(microstructureFileName);
+                    addIrradiationPrismaticLoopDensity(spec);
+                }
+                else if(style=="Individual" || style=="individual")
+                {
+                    IrradiationPrismaticLoopIndividualSpecification spec(microstructureFileName);
+                    addIrradiationPrismaticLoopIndividual(spec);
                 }
                 else
                 {

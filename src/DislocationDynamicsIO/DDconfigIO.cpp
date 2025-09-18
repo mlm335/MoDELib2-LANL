@@ -314,6 +314,8 @@ typename DDconfigIO<dim>::DispMatrixType& DDconfigIO<dim>::displacementMatrix()
                 const bool& success=insertPair.second;
                 
                 // std::cout<<" Segment "<<sourceID<<"=>"<<sinkID;
+
+                iter->second.loopCounter++;
                 
                 if(success)
                 {

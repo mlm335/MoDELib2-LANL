@@ -63,6 +63,12 @@
 #include <PlanarLoopIndividualSpecification.h>
 #include <CircularCrackIndividualSpecification.h>
 #include <CrackMeshIndividualSpecification.h>
+#include <aLoopDensitySpecification.h>
+#include <aLoopIndividualSpecification.h>
+// #include <FRSourceDensitySpecification.h>
+#include <IrradiationPrismaticLoopIndividualSpecification.h>
+#include <IrradiationPrismaticLoopIndividualSpecification.h>
+#include <IrradiationPrismaticLoopDensitySpecification.h>
 
 namespace model
 {
@@ -118,7 +124,12 @@ struct PolyPoint
         void addPlanarLoopIndividual(const PlanarLoopIndividualSpecification& spec);
         void addCircularCrackIndividual(const CircularCrackIndividualSpecification& spec);
         void addCrackMeshIndividual(const CrackMeshIndividualSpecification& spec);
-
+        void addaLoopDensity(const aLoopDensitySpecification& spec);
+        void addaLoopIndividual(const aLoopIndividualSpecification& spec);
+        // void addFRsourceDensity(const FRSourceDensitySpecification& spec);
+        void addIrradiationPrismaticLoopDensity(const IrradiationPrismaticLoopDensitySpecification& spec);
+        void addIrradiationPrismaticLoopIndividual(const IrradiationPrismaticLoopIndividualSpecification& spec);
+        
         size_t insertLoop(const VectorDimD& b,const VectorDimD& unitNormal,const VectorDimD& P0,const size_t& grainID,const DislocationLoopType& loopType);
         size_t insertLoopNode(const size_t& loopID,const VectorDimD& loopNodePos,const size_t& networkNodeID,const VectorDimD& loopNodeShift,const std::pair<short int,short int>& periodicEdgeIDs);
         std::vector<size_t> insertLoopLinks(const size_t& loopID,const std::vector<size_t>& loopNodeIDs);

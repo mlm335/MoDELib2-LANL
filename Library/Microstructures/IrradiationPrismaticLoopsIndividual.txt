@@ -1,0 +1,7 @@
+type=IrradiationPrismaticLoop; # 'HCP' or 'BCC' irradiation loops
+style=individual;
+planeIDs=7; # 0 basal plane. 7 prismatic plane
+loopRadii_SI=100.0e-10; # [m] loop radii
+loopSides=36; # [-] number of side of loop polygon
+loopCenters=1546.5 1546.5 1546.5;
+isVacancyLoop=0; # 1=vacancy-type loops, 0=interstiatial-type loops

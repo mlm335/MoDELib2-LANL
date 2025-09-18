@@ -20,9 +20,11 @@ namespace model
     struct FrankLoopsDensitySpecification : public MicrostructureSpecificationBase
     {
         double targetDensity;
+        std::vector<int> planeIDs;
         int numberOfSides;
         double radiusDistributionMean;
         double radiusDistributionStd;
+        double burgersFactor;
         bool areVacancyLoops;
         
         FrankLoopsDensitySpecification();

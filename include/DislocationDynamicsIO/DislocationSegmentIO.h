@@ -28,6 +28,8 @@ namespace model
         VectorDim b;
         VectorDim n;
 
+        int loopCounter; // number of loops this segment is part of
+
         int  meshLocation;
         std::set<int> grainIDs;
 //        int loopCounter;
@@ -53,7 +55,8 @@ namespace model
         /* init */ sinkID(sinkID_in),
         /* init */ b(VectorDim::Zero()),
         /* init */ n(VectorDim::Zero()),
-        /* init */ meshLocation(-1)
+        /* init */ meshLocation(-1),
+        /* init */ loopCounter(0)
 //        /* init */ grainID(-2) // -2 means never assigned
 //        loopCounter(0),
 //        isGlissile(true)
@@ -97,7 +100,8 @@ namespace model
             /**/<< ds.sinkID<<" "
             /**/<< std::setprecision(15)<<std::scientific<<ds.b.transpose()<<" "
             /**/<< std::setprecision(15)<<std::scientific<<ds.n.transpose()<<" "
-            /**/<< ds.meshLocation;
+            /**/<< ds.meshLocation<< " "
+            /**/<< ds.loopCounter;
             return os;
         }
         

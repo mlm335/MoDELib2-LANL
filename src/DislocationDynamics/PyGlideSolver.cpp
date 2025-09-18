@@ -1,8 +1,13 @@
-/* This file is part of MoDELib, the Mechanics Of Defects Evolution Library.
+/* This file is part of MODEL, the Mechanics Of Defect Evolution Library.
  * Written in 2024 by Matthew Maron <mlm335@miami.edu>
  *
+ * Copyright (C) 2011 by Giacomo Po         <gpo@ucla.edu>.
+ * Copyright (C) 2011 by Benjamin Ramirez   <ramirezbrf@gmail.com>.
+ * Copyright (C) 2011 by Tamer Crsoby       <tamercrosby@gmail.com>,
+ * Copyright (C) 2011 by Can Erel           <canerel55@gmail.com>,
+ * Copyright (C) 2011 by Mamdouh Mohamed    <msm07d@fsu.edu>
  *
- * MoDELib is distributed without any warranty under the
+ * model is distributed without any warranty under the
  * GNU General Public License (GPL) v2 <http://www.gnu.org/licenses/>.
  */
 
@@ -373,7 +378,7 @@ namespace model
 
         Eigen::MatrixXd updatedVelo = updateUnconnectedNodePythonVelocity(nodePythonVelocity, nodesToRemove);
         Eigen::MatrixXd updatedVelocity = updateBoundaryNodePythonVelocity(updatedVelo, boundaryNodeMap);
-        updatedVelocity /= 3.228757859764734e01; //Convert to Velocities
+        updatedVelocity /= 3.228757859764734e01; //Convert A/ps to m/s to code Velocities
         
 //        pybind11::print(pyModule.attr("PIGNN")().attr("MLmobility")(positionNodes,stressNodes,burgersNodes,connections,Temperature).template cast<Eigen::MatrixXd>());
 //        const std::string directory = "/Users/matthewmaron/Documents/MoDELib2-ML/tutorials/DislocationDynamics/periodicDomains/uniformLoadControllerML_500K/evl/";

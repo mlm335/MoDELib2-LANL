@@ -15,6 +15,7 @@ namespace model
     FrankLoopsDensitySpecification::FrankLoopsDensitySpecification():
     /* init */ MicrostructureSpecificationBase("PeriodicDipole","Density")
     /* init */,targetDensity(0.0)
+    /* init */,planeIDs(std::vector<int>())
     /* init */,numberOfSides(0)
     /* init */,radiusDistributionMean(0.0)
     /* init */,radiusDistributionStd(0.0)
@@ -26,12 +27,15 @@ namespace model
     FrankLoopsDensitySpecification::FrankLoopsDensitySpecification(const std::string& fileName):
     /* init */ MicrostructureSpecificationBase("FrankLoops","Density",fileName)
     /* init */,targetDensity(this->parser->readScalar<double>("targetDensity",true))
+    /* init */,planeIDs(targetDensity>0.0? this->parser->readArray<int>("planeIDs",true) : std::vector<int>())
     /* init */,numberOfSides(targetDensity>0.0? this->parser->readScalar<int>("numberOfSides",true) : 0)
     /* init */,radiusDistributionMean(targetDensity>0.0? this->parser->readScalar<double>("radiusDistributionMean",true) : 0.0)
     /* init */,radiusDistributionStd(targetDensity>0.0? this->parser->readScalar<double>("radiusDistributionStd",true) : 0.0)
+    /* init */,burgersFactor(targetDensity>0.0? this->parser->readScalar<double>("burgersFactor",true) : 1.0)
     /* init */,areVacancyLoops(targetDensity>0.0? this->parser->readScalar<int>("areVacancyLoops",true) : 1)
     {
-        
+
+
     }
 }
 #endif

@@ -1,0 +1,20 @@
+type=IrradiationPrismaticLoop; # 'HCP' or 'BCC' irradiation loops
+style=Density;
+
+#HCP
+targetIHCPLoopDensity=1e20;
+fractionBasalVacancy=0.1; 
+fractionPrismaticInterstitial=0.9; 
+fractionPrismaticVacancy=0; # if these = 1, there will be no intersitial <c> loops
+PrismaticInterstitialLoopSizeMean=5e-9; # [m] Mean radius interstitial <a> loops
+PrismaticInterstitialLoopSizeStd=0; # [m] Std for interstitial <a> loops
+PrismaticVacancyLoopSizeMean=0; # [m] Mean radius vacancy <a> loops
+PrismaticVacancyLoopSizeStd=0; # [m] Std for vacancy <a> loops
+BasalVacancyLoopSizeMean=10e-9; # [m] Mean radius vacancy <c> loops
+BasalVacancyLoopSizeStd=0; # [m] Std for vacancy <c> loops
+BasalInterstitialLoopSizeMean=0; # [m] Mean radius vacancy <a> loops
+BasalInterstitialLoopSizeStd=0; # [m] Std for vacancy <a> loops
+IHCPLoopsNumberOfSides=36; # number of nodes used to discretize loops (sessile)
+
+#BCC
+#Add for BCC materials here

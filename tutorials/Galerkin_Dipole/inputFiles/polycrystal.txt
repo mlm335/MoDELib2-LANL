@@ -1,0 +1,25 @@
+materialFile=../../../MaterialsLibrary/Fe_320.txt;
+absoluteTemperature=300; # [K] simulation temperature
+meshFile=../../../MeshLibrary/unitCube.msh; # mesh file
+C2G1=0.577350269189626 0.577350269189626 -0.577350269189626
+ 0.707106781186547 0.000000000000000 0.707106781186547
+ 0.408248290463863 -0.816496580927726 -0.408248290463863 ; # crystal rotation matrix
+F=200.000000000000057 0.000000000000000 0.000000000000000
+ 0.000000000000000 99.612582873182575 0.000000000000000
+ 0.000000000000000 0.000000000000004 169.705627484771412 ; # mesh deformation gradient. Mesh nodes X are mapped to x=F*(X-X0)
+X0=0.0 0.0 0.0; # mesh shift. Mesh nodes X are mapped to x=F*(X-X0)
+periodicFaceIDs=-1; # IDs of faces labelled as periodic
+
+
+
+#gridSize=256 256; # size of grid on the glide plane
+#gridSpacing_SI=1e-10 1e-10; # [m] spacing of grid on the glide plane
+#solidSolutionNoiseMode=0; # 0=no noise, 1= read noise, 2=compute noise
+#solidSolutionNoiseFile_xz=../../../NoiseLibrary/noise_xz.vtk;
+#solidSolutionNoiseFile_yz=../../../NoiseLibrary/noise_yz.vtk;
+#stackingFaultNoiseMode=0; # 0=no noise
+#spreadLstress_A=1; # add comment
+#a_cai_A=1; # add comment
+#seed=0; # add comment
+#dislocationMobilityType=default; # default or FCC,BCC,HEXbasal,HEXprismatic,HEXpyramidal
+#dislocationMobilityType=/Users/matthewmaron/MoDELib2-dev/python/DDMobilityPy;

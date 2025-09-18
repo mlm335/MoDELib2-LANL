@@ -37,11 +37,13 @@ dH0_eV_p=2.3;		# [eV]		enthalpy barrier for kink nucleation
 p_p=0.86;				# [-]		mobility exponent
 q_p=1.69;				# [-]		mobility exponent
 Tf_p=0.8;				# [-]		athermal transition temperature in fraction of Tm 
-tauC_SI_p=38.22e6;		# [Pa]		Peierls stress
+tauC_SI_p=180e6;		# [Pa]		Peierls stress
 a0_p=1;			# [-]		non-Schmid coefficient
 a1_p=0;			# [-]		non-Schmid coefficient
 a2_p=0;			# [-]		non-Schmid coefficient
 a3_p=0;			# [-]		non-Schmid coefficient
+
+dE0_eV_p=2.3; # [eV] mu*c enthalpy barrier for oxygen solid solution 
 
 # Mobility parameters in pyramidal planes
 dislocationMobilityTypePyramidal=default; # default or FCC,BCC,HEXbasal,HEXprismatic,HEXpyramidal 

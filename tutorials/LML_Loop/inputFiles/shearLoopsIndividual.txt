@@ -1,0 +1,6 @@
+type= ShearLoop;
+style=individual;
+slipSystemIDs=1; # 
+loopRadii_SI=1e-08; # 
+loopSides=28; # 
+loopCenters=0 0 0; # 

@@ -27,7 +27,15 @@ target_sources(${PROJECT_NAME} PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/CircularCrackGenerator.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/CrackMeshIndividualSpecification.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/CrackMeshGenerator.cpp
-#	${CMAKE_CURRENT_SOURCE_DIR}/VTKGenerator.cpp
-			)
+    ${CMAKE_CURRENT_SOURCE_DIR}/aLoopDensitySpecification.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/aLoopIndividualSpecification.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/aLoopGenerator.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/IrradiationPrismaticLoopIndividualSpecification.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/IrradiationPrismaticLoopDensitySpecification.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/IrradiationPrismaticLoopGenerator.cpp
+    # ${CMAKE_CURRENT_SOURCE_DIR}/FRSourceGenerator.cpp
+    # ${CMAKE_CURRENT_SOURCE_DIR}/FRSourceDensitySpecification.cpp
+	# ${CMAKE_CURRENT_SOURCE_DIR}/VTKGenerator.cpp
+	)
 
 

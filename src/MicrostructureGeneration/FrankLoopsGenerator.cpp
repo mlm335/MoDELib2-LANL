@@ -17,6 +17,7 @@
 #include <Eigen/LU>
 #include <Eigen/Cholesky>
 #include <limits>
+#include <set>
 
 //#include <Simplex.h>
 #include <SimplicialMesh.h>
@@ -45,44 +46,57 @@
 namespace model
 {
 
-//FrankLoopsGenerator::FrankLoopsGenerator(const std::string& fileName) :
-//    /* init */ MicrostructureGeneratorBase(fileName)
-//    {
-//        
-//    }
-
     FrankLoopsGenerator::FrankLoopsGenerator(const FrankLoopsDensitySpecification& spec,MicrostructureGenerator& mg)
     {
         std::cout<<magentaBoldColor<<"Generating Frank loop density"<<defaultColor<<std::endl;
-//        const double targetDensity(this->parser.readScalar<double>("targetDensity",true));
         if(spec.targetDensity>0.0)
         {
-//            const int numberOfSides(this->parser.readScalar<int>("numberOfSides",true));
-//            const double radiusDistributionMean(this->parser.readScalar<double>("radiusDistributionMean",true));
-//            const double radiusDistributionStd(this->parser.readScalar<double>("radiusDistributionStd",true));
-//            const int areVacancyLoops(this->parser.readScalar<int>("areVacancyLoops",true));
-
+            std::random_device rd;
+            std::mt19937 generator(rd());
             std::normal_distribution<double> radiusDistribution(spec.radiusDistributionMean/mg.ddBase.poly.b_SI,spec.radiusDistributionStd/mg.ddBase.poly.b_SI);
-            std::mt19937 generator;
+            std::set<int> planeIDs(spec.planeIDs.begin(), spec.planeIDs.end());
+            std::uniform_int_distribution<size_t> distrib(0, planeIDs.size() - 1);
+//            for (int pID : planeIDs)
+//            {
+//                if (pID >  static_cast<int>(planeIDs.size()) )
+//                {
+//                    throw std::runtime_error("planeID " + std::to_string(pID) + " not found, skipping.");
+//                }
+//            }
+            
             double density=0.0;
             while(density<spec.targetDensity)
             {
                 const std::pair<LatticeVector<3>, int> rp(mg.ddBase.poly.randomLatticePointInMesh());
                 const LatticeVector<3> L0=rp.first;
                 const size_t grainID=rp.second;
-                std::uniform_int_distribution<> ssDist(0,mg.ddBase.poly.grain(grainID)->planeNormals().size()-1);
-                const int pID(ssDist(generator)); // a random SlipSystem
+                
+                auto iter = planeIDs.begin();
+                std::uniform_int_distribution<> pDist(0, mg.ddBase.poly.grain(grainID)->planeNormals().size() - 1);
+                std::advance(iter, distrib(generator));
+                int pID(*iter==-1? pDist(generator) : *iter );
                 const double radius(radiusDistribution(generator));
+                
+//                std::cout<< "Plane ID: " << pID << "  isVacancyLoop?  " << spec.areVacancyLoops << "  Radius: " << radius << std::endl;
+
+                
                 try
                 {
-                    const bool isVL(spec.areVacancyLoops>0);
-                    generateSingle(mg,pID,L0.cartesian(),radius,spec.numberOfSides,isVL);
-                    density+=2.0*std::numbers::pi*radius/mg.ddBase.mesh.volume()/std::pow(mg.ddBase.poly.b_SI,2);
-                    std::cout<<"Frank loop density="<<density<<std::endl;
+//                    const bool isVL(spec.areVacancyLoops>0);
+                    bool success = generateSingle(mg, pID, L0.cartesian(),grainID, radius, spec.numberOfSides, spec.burgersFactor, spec.areVacancyLoops);
+                    if (success)  // Only update density if the loop was inserted
+                    {
+                        density += 2.0 * std::numbers::pi * radius / mg.ddBase.mesh.volume() / std::pow(mg.ddBase.poly.b_SI, 2);
+                        std::cout << "Frank loop density=" << density << std::endl;
+                    }
+                    else
+                    {
+                        density += 0.0;
+                    }
                 }
                 catch(const std::exception& e)
                 {
-                    
+                    std::cerr << "Exception in loop generation: " << e.what() << std::endl;
                 }
             }
         }
@@ -90,15 +104,9 @@ namespace model
 
 FrankLoopsGenerator::FrankLoopsGenerator(const FrankLoopsIndividualSpecification& spec,MicrostructureGenerator& mg)
     {
-//        const std::vector<int> planeIDs(this->parser.readArray<int>("planeIDs",true));
         std::cout<<magentaBoldColor<<"Generating individual Frank loops"<<defaultColor<<std::endl;
         if(spec.planeIDs.size())
         {
-//            const std::vector<double> loopRadii(this->parser.readArray<double>("loopRadii_SI",true));
-//            const Eigen::Matrix<double,Eigen::Dynamic,3> loopCenters(this->parser.readMatrix<double>("loopCenters",spec.planeIDs.size(),dim,true));
-//            const std::vector<int> numberOfSides(this->parser.readArray<int>("numberOfSides",true));
-//            const std::vector<int> isVacancyLoop(this->parser.readArray<int>("isVacancyLoop",true));
-
             if(spec.planeIDs.size()!=spec.loopRadii.size())
             {
                 throw std::runtime_error("spec.planeIDs.size()="+std::to_string(spec.planeIDs.size())+" NOT EQUAL TO spec.spec.spec.loopRadii.size()="+std::to_string(spec.loopRadii.size()));
@@ -111,68 +119,79 @@ FrankLoopsGenerator::FrankLoopsGenerator(const FrankLoopsIndividualSpecification
             {
                 throw std::runtime_error("spec.planeIDs.size()="+std::to_string(spec.planeIDs.size())+" NOT EQUAL TO spec.loopSides.size()="+std::to_string(spec.loopSides.size()));
             }
+            if(spec.planeIDs.size()!=spec.burgersFactor.size())
+            {
+                throw std::runtime_error("spec.planeIDs.size()="+std::to_string(spec.planeIDs.size())+" NOT EQUAL TO spec.burgersFactor.size()="+std::to_string(spec.burgersFactor.size()));
+            }
             if(spec.planeIDs.size()!=spec.isVacancyLoop.size())
             {
                 throw std::runtime_error("spec.planeIDs.size()="+std::to_string(spec.planeIDs.size())+" NOT EQUAL TO spec.isVacancyLoop.size()="+std::to_string(spec.isVacancyLoop.size()));
             }
             for(size_t k=0;k<spec.planeIDs.size();++k)
             {
-                
-                const bool isVL(spec.isVacancyLoop[k]>0);
-                generateSingle(mg,spec.planeIDs[k],spec.loopCenters.row(k),spec.loopRadii[k]/mg.ddBase.poly.b_SI,spec.loopSides[k],isVL);
+                std::pair<bool, const Simplex<3,3>*> found(mg.ddBase.mesh.search(spec.loopCenters.row(k)));
+                if (!found.first)
+                {
+                    std::cout << "Point " << spec.loopCenters.row(k) << " is outside mesh. Skipping loop insertion." << std::endl;
+                }
+                else
+                {
+                    const int grainID(found.second->region->regionID);
+                    const bool isVL(spec.isVacancyLoop[k]>0);
+                    generateSingle(mg,spec.planeIDs[k],spec.loopCenters.row(k),grainID,spec.loopRadii[k]/mg.ddBase.poly.b_SI,spec.loopSides[k],spec.burgersFactor[k],isVL);
+                }
+               
             }
         }
         
     }
 
-    void FrankLoopsGenerator::generateSingle(MicrostructureGenerator& mg,const int& pID,const VectorDimD& center,const double& radius,const size_t& sides,const bool& isVacancyLoop)
+    bool FrankLoopsGenerator::generateSingle(MicrostructureGenerator& mg, const int& pID, const VectorDimD& center,const int& grainID, const double& radius, const size_t& sides, const double& burgersFactor, const bool& isVacancyLoop)
     {
-        std::pair<bool,const Simplex<3,3>*> found(mg.ddBase.mesh.search(center));
-        if(!found.first)
-        {
-            std::cout<<"Point "<<center.transpose()<<" is outside mesh. EXITING."<<std::endl;
-            exit(EXIT_FAILURE);
-        }
-        
-        const int grainID(found.second->region->regionID);
-        assert(mg.ddBase.poly.grains.size()==1 && "Periodic dislocations only supported for single crystals");
         const auto& grain(mg.ddBase.poly.grain(grainID));
-        
-        if(pID>=0 && pID<int(grain->planeNormals().size()))
+        if (pID >= 0 && pID < int(grain->planeNormals().size()))
         {
             const auto& planeBase(*grain->planeNormals().at(pID));
-            
-            
             const long int planeIndex(planeBase.closestPlaneIndexOfPoint(center));
             GlidePlaneKey<3> glidePlaneKey(planeIndex, planeBase);
             std::shared_ptr<PeriodicGlidePlane<3>> glidePlane(mg.ddBase.periodicGlidePlaneFactory.get(glidePlaneKey));
             const VectorDimD P0(glidePlane->referencePlane->snapToPlane(center));
-            
+
             std::vector<VectorDimD> loopNodePos;
-            for(size_t k=0;k< sides;++k)
+            for (size_t k = 0; k < sides; ++k)
             {
-                loopNodePos.push_back(P0+Eigen::AngleAxisd(k*2.0*std::numbers::pi/sides,planeBase.G2L.row(2).transpose())*planeBase.G2L.row(0).transpose()*radius);
+                loopNodePos.push_back(P0 + Eigen::AngleAxisd(k * 2.0 * std::numbers::pi / sides, planeBase.G2L.row(2).transpose()) *
+                                      planeBase.G2L.row(0).transpose() * radius);
             }
-            
-            
-//            std::map<VectorDimD,size_t,CompareVectorsByComponent<double,dim,float>> uniqueNetworkNodeMap; // networkNodePosition->networkNodeID
+
+            if (!mg.ddBase.isPeriodicDomain)
+            {
+                if (!mg.allPointsInGrain(loopNodePos, grainID))
+                {
+                    std::cout << "Some loop nodes are outside the grain. Skipping loop insertion." << std::endl;
+                    return false;
+                }
+            }
+
             ReciprocalLatticeDirection<3> rp(planeBase);
-            const VectorDimD b(isVacancyLoop? (rp.cartesian().normalized()*rp.planeSpacing()).eval() : (-1.0*rp.cartesian().normalized()*rp.planeSpacing()).eval());
-            mg.insertJunctionLoop(loopNodePos,glidePlane,
-                               b,glidePlane->referencePlane->unitNormal,
-                                  P0,grainID,DislocationLoopIO<3>::SESSILELOOP);
+            const VectorDimD b(isVacancyLoop ? (burgersFactor * rp.cartesian().normalized() * rp.planeSpacing()).eval()
+                                             : (-1.0 * burgersFactor * rp.cartesian().normalized() * rp.planeSpacing()).eval());
+            mg.insertJunctionLoop(loopNodePos, glidePlane, b, glidePlane->referencePlane->unitNormal, P0, grainID, DislocationLoopIO<3>::SESSILELOOP);
+            return true;
         }
         else
         {
-            if(pID<0)
+            if (pID < 0)
             {
-                std::cout<<"Skipping planeID "<<pID<<std::endl;
+                std::cout << "Skipping planeID " << pID << std::endl;
             }
             else
             {
-                throw std::runtime_error("planeID "+std::to_string(pID)+" not found, skipping.");
+                throw std::runtime_error("planeID " + std::to_string(pID) + " not found, skipping.");
             }
+            return false;
         }
     }
 }
+
 #endif

@@ -44,7 +44,9 @@ namespace model
         typedef Eigen::Matrix<double,3,3> MatrixDim;
         typedef Eigen::Matrix<double,3,1> VectorDim;
         
+        static constexpr double kB_eV=8.617e-5;       // Boltzmann constant in [eV]
         static constexpr double kB_SI=1.38064852e-23; // [J/K]
+        
         const double kB;
         const double mu_SI;
         const double Tm;
@@ -64,8 +66,13 @@ namespace model
                         const double& T,
                         const double& dL,
                         const double& dt,
-                        const std::shared_ptr<StochasticForceGenerator>& sfg) override;
-        
+                        const std::shared_ptr<StochasticForceGenerator>& sfg) ;
+
+        double velocity(const MatrixDim& S,
+                        const VectorDim& b,
+                        const VectorDim& xi,
+                        const VectorDim& n,
+                        const double& T) ;
     };
     
 }

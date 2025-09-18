@@ -264,14 +264,41 @@ typename DislocationNode<dim,corder>::VectorDim DislocationNode<dim,corder>::cli
     template <int dim, short unsigned int corder>
     bool DislocationNode<dim,corder>::trySet_P(const typename DislocationNode<dim,corder>::VectorDim& newP)
     {
+        // VerboseDislocationNode(1, " Try  Setting P for Network Node " << this->tag()<<" to"<<newP.transpose()<< std::endl;);
+        // const VectorDim snappedPosition(this->snapToGlidePlanesinPeriodic(newP));
+        // VerboseDislocationNode(2, " snappedPosition= " << snappedPosition.transpose()<< std::endl;);
+        // if((this->get_P()-snappedPosition).norm()>FLT_EPSILON)
+        // {
+        //     for (auto &loopNode : this->loopNodes())
+        //     {
+        //         loopNode->set_P(loopNode->periodicPlanePatch() ? snappedPosition - loopNode->periodicPlanePatch()->shift : snappedPosition);
+        //     }
+        // }
+
         VerboseDislocationNode(1, " Try  Setting P for Network Node " << this->tag()<<" to"<<newP.transpose()<< std::endl;);
         const VectorDim snappedPosition(this->snapToGlidePlanesinPeriodic(newP));
         VerboseDislocationNode(2, " snappedPosition= " << snappedPosition.transpose()<< std::endl;);
-        if((this->get_P()-snappedPosition).norm()>FLT_EPSILON)
-        {
-            for (auto &loopNode : this->loopNodes())
+        
+        if(!this->network().ddBase.isPeriodicDomain)
+        { // Not Periodic
+            // Temporary Solution for Dislocation Node Outside Boundary Issue
+            std::pair<bool, const Simplex<dim,dim>*> temp(this->network().ddBase.mesh.searchRegionWithGuess(newP,p_Simplex));
+            if((this->get_P()-snappedPosition).norm()>FLT_EPSILON && temp.first)
             {
-                loopNode->set_P(loopNode->periodicPlanePatch() ? snappedPosition - loopNode->periodicPlanePatch()->shift : snappedPosition);
+                for (auto &loopNode : this->loopNodes())
+                {
+                    loopNode->set_P(loopNode->periodicPlanePatch() ? snappedPosition - loopNode->periodicPlanePatch()->shift : snappedPosition);
+                }
+            }
+        }
+        else
+        { // Periodic
+            if((this->get_P()-snappedPosition).norm()>FLT_EPSILON)
+            {
+                for (auto &loopNode : this->loopNodes())
+                {
+                    loopNode->set_P(loopNode->periodicPlanePatch() ? snappedPosition - loopNode->periodicPlanePatch()->shift : snappedPosition);
+                }
             }
         }
 

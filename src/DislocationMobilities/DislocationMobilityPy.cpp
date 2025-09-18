@@ -23,15 +23,26 @@ namespace model
     /* init */,cs(material.cs_SI)
     /* init */,pyModuleName(pyModuleName_in)
     {// Set up pyModule
+        std::cout << "[C++] Initializing DislocationMobilityPy with module: " << pyModuleName << std::endl;
         std::filesystem::path modulePath(pyModuleName);
         const std::string moduleStem(modulePath.stem().string());
         const std::string moduleDir(modulePath.parent_path().string());
-        std::cout<<"moduleStem="<<moduleStem<<std::endl;
-        std::cout<<"moduleDir="<<moduleDir<<std::endl;
         pybind11::module sys = pybind11::module::import("sys");
         pybind11::list path = sys.attr("path");
         path.append(moduleDir);
         pyModule = pybind11::module::import(moduleStem.c_str());
+        std::cout << "[C++] Loading py module from: " << pyModuleName << std::endl;
+        std::cout << "[C++] moduleStem: " << moduleStem << std::endl;
+        std::cout << "[C++] moduleDir:  " << moduleDir << std::endl;
+    }
+
+    double DislocationMobilityPy::velocity(const MatrixDim& S,
+                                            const VectorDim& b,
+                                            const VectorDim& xi,
+                                            const VectorDim& n,
+                                            const double& T)
+    {
+        return velocity(S,b,xi,n,T,0.0,0.0,nullptr);
     }
 
     double DislocationMobilityPy::velocity(const MatrixDim& S,
@@ -44,16 +55,16 @@ namespace model
                         const std::shared_ptr<StochasticForceGenerator>& )
     {
         Eigen::MatrixXd stress(S*mu_SI*1e-9); // GPa
-        Eigen::VectorXd burgers(b); // Vector Direction
-        Eigen::VectorXd tangent(xi); // Vector Direction
-        Eigen::VectorXd normal(n); // Vector Direction
+        Eigen::VectorXd burgers(b); // Vector Unit Direction
+        Eigen::VectorXd tangent(xi); // Vector Unit Direction
+        Eigen::VectorXd normal(n); // Vector Unit Direction
         const double temp(T); // K
         
         try
         {
            pybind11::object mobilitySolver = pyModule.attr("MobilitySolver")();
            double qpPythonVelocity = mobilitySolver.attr("velocityPy")(stress, burgers, tangent, normal, temp, dL, dt).cast<double>();
-           return qpPythonVelocity*100/cs; //Convert from A/ps to code units
+           return qpPythonVelocity/cs; //Convert from A/ps to code units
         }
         catch (const pybind11::error_already_set& e)
         {
@@ -63,6 +74,9 @@ namespace model
         
 
     }
+
+
+
 
 #else // COMPILED WITHOUT PYBIND11
     DislocationMobilityPy::DislocationMobilityPy(const PolycrystallineMaterialBase& material,const std::string& pyModuleName_in) :
@@ -87,6 +101,18 @@ namespace model
         throw std::runtime_error("DislocationMobilityPy used without pybind11");
         return 0.0;
     }
+
+    double DislocationMobilityPy::velocity(const MatrixDim& ,
+                                       const VectorDim& ,
+                                       const VectorDim& ,
+                                       const VectorDim& ,
+                                       const double& )
+    {
+        throw std::runtime_error("DislocationMobilityPy used without pybind11");
+        return 0.0;
+    }
+
+
 #endif
 
 }
