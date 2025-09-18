@@ -111,7 +111,7 @@ for x1 in X1_Direction:
             print("\033[1;32mCreating  DDfile\033[0m")
             DD_file_path = os.path.join(input_directory, DDfile)
             shutil.copy2(DDfileTemplate, DD_file_path)
-            setInputVariable(DD_file_path,'Nsteps','10000')
+            setInputVariable(DD_file_path,'Nsteps','5000')
             setInputVariable(DD_file_path, 'remeshFrequency', '0')
             setInputVariable(DD_file_path, 'Lmin', '20')
             setInputVariable(DD_file_path, 'Lmax', '25')

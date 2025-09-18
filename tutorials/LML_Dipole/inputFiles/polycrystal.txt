@@ -1,5 +1,5 @@
 materialFile=Fe_320.txt;
-absoluteTemperature=300; # [K] simulation temperature 
+absoluteTemperature=1000; # [K] simulation temperature 
 meshFile=unitCube24.msh; # mesh file 
 C2G1=0.5773502691896258 0.5773502691896258 -0.5773502691896258
      -0.408248290463863 0.816496580927726 0.408248290463863
