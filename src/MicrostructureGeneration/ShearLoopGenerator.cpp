@@ -60,7 +60,7 @@ ShearLoopGenerator::ShearLoopGenerator(const ShearLoopDensitySpecification& spec
                 const double radius(radiusDistribution(generator));
                 try
                 {
-                    const bool success=generateSingle(mg,rSS,L0.cartesian(),radius,spec.numberOfSides);
+                    const bool success=generateSingle(mg,rSS,L0.cartesian(),radius,spec.numberOfSides,spec.loopEFs);
                     if(success)
                     {
                         density+=2.0*std::numbers::pi*radius/mg.ddBase.mesh.volume()/std::pow(mg.ddBase.poly.b_SI,2);
@@ -98,7 +98,7 @@ ShearLoopGenerator::ShearLoopGenerator(const ShearLoopIndividualSpecification& s
     {
         try
         {
-            const bool success=generateSingle(mg,spec.slipSystemIDs[k],spec.loopCenters.row(k),spec.loopRadii[k]/mg.ddBase.poly.b_SI,spec.loopSides[k]);
+            const bool success=generateSingle(mg,spec.slipSystemIDs[k],spec.loopCenters.row(k),spec.loopRadii[k]/mg.ddBase.poly.b_SI,spec.loopSides[k],spec.loopEFs[k]);
             if(success)
             {
                 density+=2.0*std::numbers::pi*spec.loopRadii[k]/mg.ddBase.mesh.volume()/std::pow(mg.ddBase.poly.b_SI,2);
@@ -112,7 +112,7 @@ ShearLoopGenerator::ShearLoopGenerator(const ShearLoopIndividualSpecification& s
     }
 }
 
-bool ShearLoopGenerator::generateSingle(MicrostructureGenerator& mg,const int& rSS,const VectorDimD& center,const double& radius,const size_t& sides)
+bool ShearLoopGenerator::generateSingle(MicrostructureGenerator& mg,const int& rSS,const VectorDimD& center,const double& radius,const size_t& sides, const double& ef)
 {
     bool success =false;
     std::pair<bool,const Simplex<3,3>*> found(mg.ddBase.mesh.search(center));
@@ -136,12 +136,26 @@ bool ShearLoopGenerator::generateSingle(MicrostructureGenerator& mg,const int& r
         std::shared_ptr<PeriodicGlidePlane<3>> glidePlane(mg.ddBase.periodicGlidePlaneFactory.get(glidePlaneKey));
         const VectorDimD P0(glidePlane->referencePlane->snapToPlane(center));
         //            std::cout<<"P0="<<P0.transpose()<<std::endl;
-        
+
+        // ADD AN ELLIPTICAL LOOP, NEED TWO IN PLANE AXES, MAJOR B AND MINOR BXN
+        const double R_minor = radius;
+        const double R_major = radius * ef;
+        VectorDimD e1 = slipSystem.s.cartesian().normalized(); // Burgers direction
+        VectorDimD e2 = slipSystem.unitNormal.cross(e1).normalized();
         std::vector<VectorDimD> loopNodePos;
-        for(size_t k=0;k< sides;++k)
+        for(size_t k=0; k<sides; ++k)
         {
-            loopNodePos.push_back(P0+Eigen::AngleAxisd(k*2.0*std::numbers::pi/sides,slipSystem.unitNormal)*slipSystem.s.cartesian().normalized()*radius);
+            const double angle = (double(k)*2.0*std::numbers::pi)/double(sides);
+            const VectorDimD point = P0 + R_major * std::cos(angle) * e1 + R_minor * std::sin(angle) * e2;
+            loopNodePos.push_back(point);
         }
+
+        // CIRCULAR LOOP 
+        // std::vector<VectorDimD> loopNodePos;
+        // for(size_t k=0;k< sides;++k)
+        // {
+        //     loopNodePos.push_back(P0+Eigen::AngleAxisd(k*2.0*std::numbers::pi/sides,slipSystem.unitNormal)*slipSystem.s.cartesian().normalized()*radius);
+        // }
         
         
         //            std::map<VectorDimD,size_t,CompareVectorsByComponent<double,dim,float>> uniqueNetworkNodeMap; // networkNodePosition->networkNodeID

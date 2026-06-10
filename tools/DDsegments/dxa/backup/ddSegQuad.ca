@@ -1,0 +1,5 @@
+SIMULATION_CELL_MATRIX
+494.5570         0         0
+         0  246.3205         0
+         0    0.0000  419.6455
+PBC_FLAGS 1 1 1

@@ -25,6 +25,7 @@ namespace model
         double radiusDistributionStd_SI;
         std::vector<int> allowedGrainIDs;
         std::vector<int> allowedSlipSystemIDs;
+        double loopEFs;
 
         ShearLoopDensitySpecification();
         ShearLoopDensitySpecification(const std::string& fileName);

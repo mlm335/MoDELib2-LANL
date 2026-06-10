@@ -32,6 +32,10 @@ X1_Direction = [ [1,1,-1],[2,3,-2],[1,2,-1],[1,3,-1],[1,4,-1],[0,1,0],
 Resolved_Shear = [0.0122, 0.0091463, 0.0061, 0.0031, 0.00122]
 Temperature = [100, 300, 500, 700, 1000]
 
+X1_Direction = [ [1,1,-1]]
+Resolved_Shear = [0.0122]
+Temperature = [300]
+
 folder_to_run_in = 'LML_Dipole'
 
 # -- Working directories
@@ -111,13 +115,13 @@ for x1 in X1_Direction:
             print("\033[1;32mCreating  DDfile\033[0m")
             DD_file_path = os.path.join(input_directory, DDfile)
             shutil.copy2(DDfileTemplate, DD_file_path)
-            setInputVariable(DD_file_path,'Nsteps','5000')
+            setInputVariable(DD_file_path,'Nsteps','500')
             setInputVariable(DD_file_path, 'remeshFrequency', '0')
             setInputVariable(DD_file_path, 'Lmin', '20')
             setInputVariable(DD_file_path, 'Lmax', '25')
             setInputVariable(DD_file_path, 'alphaLineTension', '1')
-            setInputVariable(DD_file_path, 'timeSteppingMethod', 'fixed')  # fixed or adaptive
-            setInputVariable(DD_file_path, 'dtMax', '8')
+            setInputVariable(DD_file_path, 'timeSteppingMethod', 'adaptive')  # fixed or adaptive
+            setInputVariable(DD_file_path, 'dtMax', '8000000')
             setInputVariable(DD_file_path, 'dxMax', '1.4')
             setInputVector(DD_file_path, 'periodicImageSize', np.array([8, 8, 8]),'' )
             setInputVariable(DD_file_path, 'EwaldLengthFactor', '4')

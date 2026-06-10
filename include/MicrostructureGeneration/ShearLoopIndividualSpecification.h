@@ -23,6 +23,7 @@ namespace model
         std::vector<double> loopRadii;
         Eigen::Matrix<double,Eigen::Dynamic,3> loopCenters;
         std::vector<int> loopSides;
+        std::vector<double> loopEFs;
         
         ShearLoopIndividualSpecification();
         ShearLoopIndividualSpecification(const std::string& fileName);

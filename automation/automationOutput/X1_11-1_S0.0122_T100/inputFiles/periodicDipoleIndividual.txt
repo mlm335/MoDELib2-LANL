@@ -1,0 +1,10 @@
+type=PeriodicDipole;
+style=individual;
+slipSystemIDs=0; # each value in the vector is the slipSystem ID os a dipole
+exitFaceIDs=3; #  each value in the vector is the ID of the face from which the dipole enters/exits
+nodesPerLine=1;
+dipoleCenters=0 0 0; # 
+	      0 0 0
+	0 0 0; # each row in the matrix is a the "center" of the dipole 
+dipoleHeights=100; # each value in the vector is the height of the dipole in number of slip planes
+glideSteps=40; # [b], each value in the vector is the length of the dipole step on its glide plane

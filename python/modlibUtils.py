@@ -151,24 +151,24 @@ def getStringInFile(fileName,variable):
 def getValueInFile(fileName,variable):
     return float(getStringInFile(fileName,variable))
 
-def readFfile(folder):
-    F=np.loadtxt(folder +'/F_0.txt');
-    with open('./F/F_labels.txt') as f:
-        lines = f.readlines()
-        for idx in range(len(lines)):
-            lines[idx] = lines[idx].rstrip()
-    return F,lines
+# def readFfile(folder):
+#     F=np.loadtxt(folder +'/F_0.txt');
+#     with open('./F/F_labels.txt') as f:
+#         lines = f.readlines()
+#         for idx in range(len(lines)):
+#             lines[idx] = lines[idx].rstrip()
+#     return F,lines
     
-def getFarray(F,Flabels,label):
-    k=0;
-    for line in Flabels:
-        if line==label:
-            if F.ndim==1:
-                return F[k]
-            else:
-                return F[:,k]
-        k=k+1
-    return np.zeros(shape=(0,0))
+# def getFarray(F,Flabels,label):
+#     k=0;
+#     for line in Flabels:
+#         if line==label:
+#             if F.ndim==1:
+#                 return F[k]
+#             else:
+#                 return F[:,k]
+#         k=k+1
+#     return np.zeros(shape=(0,0))
 
 def setInputVariable(fileName,variable,newVal):
     variable=variable.strip()

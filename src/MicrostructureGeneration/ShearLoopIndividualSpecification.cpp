@@ -27,6 +27,7 @@ namespace model
             loopRadii=this->parser->readArray<double>("loopRadii_SI",true);
             loopCenters=this->parser->readMatrix<double>("loopCenters",slipSystemIDs.size(),3,true);
             loopSides=this->parser->readArray<int>("loopSides",true);
+            loopEFs = this->parser->readArray<double>("loopEFs", true);
         }
     }
 }

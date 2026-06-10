@@ -30,6 +30,7 @@ def readAUXtxt(filename):
             qp.position=np.empty([numQP, 3])
             qp.j=np.empty([numQP, 3])
             qp.tangent=np.empty([numQP, 3])
+            qp.stress=np.empty([numQP, 9])
             qp.velocity=np.empty([numQP, 3])
 
             # node data
@@ -38,6 +39,10 @@ def readAUXtxt(filename):
                 qp.position[k, :] = data[3:6]
                 qp.j[k, :] = data[6]
                 qp.tangent[k, :] = data[7:10]
+                qp.stress[k,:]=data[10:19]
+                # qp.pkForce[k, :] = data[19:22]
+                # qp.stackingFaultForce[k, :] = data[22:25]
+                # qp.lineTensionForce[k, :] = data[25:28]
                 qp.velocity[k, :] = data[28:31]
 
         return qp

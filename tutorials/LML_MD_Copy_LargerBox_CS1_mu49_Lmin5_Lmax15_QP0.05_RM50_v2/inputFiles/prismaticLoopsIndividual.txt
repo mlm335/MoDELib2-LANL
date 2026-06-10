@@ -1,0 +1,8 @@
+type=PrismaticLoop;
+style=individual;
+slipSystemIDs=5 6 11; # slip system IDs for each loop
+loopRadii_SI=9e-09 9e-09 9e-09; # radii of loops in SI
+glideSteps=0 0 0; # [b] distance from sessile loop (not important, used for debug)
+loopCenters=0.0 0.0 0.0
+-10.942958982262724 7.1993151199096985 -264.07692400086694
+17.78230834617692 23.03780838371101 149.88149740589745;

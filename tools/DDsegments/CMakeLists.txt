@@ -34,7 +34,7 @@ include_directories(${MoDELibRootDir}/include/DislocationMobilities/)
 include_directories(${MoDELibRootDir}/include/DislocationDynamicsBase/)
 include_directories(${MoDELibRootDir}/include/DislocationDynamics/)
 include_directories(${MoDELibRootDir}/include/DDvtk/)
-
+include_directories(${MoDELibRootDir}/include/DislocationMicrostructure/)
 
 add_subdirectory(${MoDELibRootDir}/src/Geometry Geometry)
 add_subdirectory(${MoDELibRootDir}/src/Lattices Lattices)
@@ -46,3 +46,4 @@ add_subdirectory(${MoDELibRootDir}/src/PolycrystallineMaterials PolyMaterials)
 add_subdirectory(${MoDELibRootDir}/src/DislocationDynamicsBase DDDbase)
 add_subdirectory(${MoDELibRootDir}/src/DislocationDynamics DDD)
 add_subdirectory(${MoDELibRootDir}/src/DDvtk DDvtk)
+add_subdirectory(${MoDELibRootDir}/src/DislocationMicrostructure Microstructure)

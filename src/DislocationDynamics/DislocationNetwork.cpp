@@ -622,6 +622,11 @@ else
             }
             
             std::cout <<" ,updating qPoints (" << nThreads << " threads) " << std::flush;
+
+    #ifdef _MODEL_PYBIND11_
+    pybind11::gil_scoped_release release;   // <-- let worker threads acquire later
+    #endif
+
     #ifdef _OPENMP
     #pragma omp parallel for
             for (size_t k = 0; k < this->networkLinks().size(); ++k)
@@ -941,104 +946,108 @@ else
         for (const auto& ln : this->loopNodes())
         {
             const auto sharedLNptr(ln.second.lock());
-            if (sharedLNptr->periodicPlaneEdge.first)
-            {//Node on a boundary: possible junction is between sharedLNptr->periodicPrev() and sharedLNptr->periodicNext()
-                if (sharedLNptr->networkNode->loopNodes().size()>1)
-                {//junction node
-                    const auto loopsThis (sharedLNptr->networkNode->loopIDs());
-                    
-                    const LoopNodeType *pPrev(sharedLNptr->periodicPrev());
-                    const LoopNodeType *pNext(sharedLNptr->periodicNext());
-                    
-                    
-                    const auto pPrevNetwork (pPrev->networkNode);
-                    const auto pNextNetwork (pNext->networkNode);
-                    
-                    assert(pPrevNetwork!=nullptr);
-                    assert(pNextNetwork!=nullptr);
-                    
-                    const auto loopspPrev(pPrevNetwork->loopIDs());
-                    const auto loopspNext(pNextNetwork->loopIDs());
-                    
-                    std::set<size_t> tempPrev;
-                    std::set<size_t> tempNext;
-                    std::set_intersection(loopspPrev.begin(), loopspPrev.end(), loopsThis.begin(), loopsThis.end(), std::inserter(tempPrev, tempPrev.begin()));
-                    std::set_intersection(loopsThis.begin(), loopsThis.end(), loopspNext.begin(), loopspNext.end(), std::inserter(tempNext, tempNext.begin()));
-                                        
-//                    if (tempPrev!=tempNext)
-//                    {
-//                        std::cout<<"For bnd network node"<<sharedLNptr->networkNode->sID<<" loops are "<<std::flush;
-//                        for (const auto& loop : loopsThis)
-//                        {
-//                            std::cout<<loop<<", ";
-//                        }
-//                        std::cout<<std::endl;
-//                        
-//                        std::cout<<"For prev network node"<<pPrevNetwork->sID<<" loops are "<<std::flush;
-//                        for (const auto& loop : loopspPrev)
-//                        {
-//                            std::cout<<loop<<", ";
-//                        }
-//                        std::cout<<std::endl;
-//                        
-//                        std::cout<<"For next network node"<<pNextNetwork->sID<<" loops are "<<std::flush;
-//                        for (const auto& loop : loopspNext)
-//                        {
-//                            std::cout<<loop<<", ";
-//                        }
-//                        std::cout<<std::endl;
-//                        throw std::runtime_error("BND node must have the same loops as the common loops between the internal nodes");
-//                    }
-//                    else
-//                    {
-//                        if (pPrevNetwork->sID < pNextNetwork->sID)
-//                        {
-//                            networkNodeLoopMap.emplace(std::make_pair(pPrevNetwork, pNextNetwork), tempPrev);
-//                        }
-//                        else
-//                        {
-//                            networkNodeLoopMap.emplace(std::make_pair(pNextNetwork, pPrevNetwork), tempPrev);
-//                        }
-//                    }
-                    
-                    std::set<size_t> tempLoops;
-                    std::set_intersection(tempPrev.begin(), tempPrev.end(), tempNext.begin(), tempNext.end(), std::inserter(tempLoops, tempLoops.begin()));
-                    if(tempLoops.size())
-                    {
-                        if (pPrevNetwork->sID < pNextNetwork->sID)
+            if (sharedLNptr->periodicNext() && sharedLNptr->periodicPrev())
+            {
+                
+                if (sharedLNptr->periodicPlaneEdge.first)
+                {//Node on a boundary: possible junction is between sharedLNptr->periodicPrev() and sharedLNptr->periodicNext()
+                    if (sharedLNptr->networkNode->loopNodes().size()>1)
+                    {//junction node
+                        const auto loopsThis (sharedLNptr->networkNode->loopIDs());
+                        
+                        const LoopNodeType *pPrev(sharedLNptr->periodicPrev());
+                        const LoopNodeType *pNext(sharedLNptr->periodicNext());
+                        
+                        
+                        const auto pPrevNetwork (pPrev->networkNode);
+                        const auto pNextNetwork (pNext->networkNode);
+                        
+                        assert(pPrevNetwork!=nullptr);
+                        assert(pNextNetwork!=nullptr);
+                        
+                        const auto loopspPrev(pPrevNetwork->loopIDs());
+                        const auto loopspNext(pNextNetwork->loopIDs());
+                        
+                        std::set<size_t> tempPrev;
+                        std::set<size_t> tempNext;
+                        std::set_intersection(loopspPrev.begin(), loopspPrev.end(), loopsThis.begin(), loopsThis.end(), std::inserter(tempPrev, tempPrev.begin()));
+                        std::set_intersection(loopsThis.begin(), loopsThis.end(), loopspNext.begin(), loopspNext.end(), std::inserter(tempNext, tempNext.begin()));
+                                            
+    //                    if (tempPrev!=tempNext)
+    //                    {
+    //                        std::cout<<"For bnd network node"<<sharedLNptr->networkNode->sID<<" loops are "<<std::flush;
+    //                        for (const auto& loop : loopsThis)
+    //                        {
+    //                            std::cout<<loop<<", ";
+    //                        }
+    //                        std::cout<<std::endl;
+    //                        
+    //                        std::cout<<"For prev network node"<<pPrevNetwork->sID<<" loops are "<<std::flush;
+    //                        for (const auto& loop : loopspPrev)
+    //                        {
+    //                            std::cout<<loop<<", ";
+    //                        }
+    //                        std::cout<<std::endl;
+    //                        
+    //                        std::cout<<"For next network node"<<pNextNetwork->sID<<" loops are "<<std::flush;
+    //                        for (const auto& loop : loopspNext)
+    //                        {
+    //                            std::cout<<loop<<", ";
+    //                        }
+    //                        std::cout<<std::endl;
+    //                        throw std::runtime_error("BND node must have the same loops as the common loops between the internal nodes");
+    //                    }
+    //                    else
+    //                    {
+    //                        if (pPrevNetwork->sID < pNextNetwork->sID)
+    //                        {
+    //                            networkNodeLoopMap.emplace(std::make_pair(pPrevNetwork, pNextNetwork), tempPrev);
+    //                        }
+    //                        else
+    //                        {
+    //                            networkNodeLoopMap.emplace(std::make_pair(pNextNetwork, pPrevNetwork), tempPrev);
+    //                        }
+    //                    }
+                        
+                        std::set<size_t> tempLoops;
+                        std::set_intersection(tempPrev.begin(), tempPrev.end(), tempNext.begin(), tempNext.end(), std::inserter(tempLoops, tempLoops.begin()));
+                        if(tempLoops.size())
                         {
-                            networkNodeLoopMap.emplace(std::make_pair(pPrevNetwork, pNextNetwork), tempLoops);
-                        }
-                        else
-                        {
-                            networkNodeLoopMap.emplace(std::make_pair(pNextNetwork, pPrevNetwork), tempLoops);
-                        }
-                    }
-                    
-                }
-            }
-            else
-            {//Node not on a boundary: possible junction is between sharedLNptr and sharedLNptr->periodicNext()
-                if (sharedLNptr->networkNode->loopNodes().size()>1)
-                {// a junction node
-                    if (sharedLNptr->boundaryNext().size()==0 && sharedLNptr->periodicNext()->networkNode->loopNodes().size()>1)
-                    {
-                        if (sharedLNptr->periodicPlanePatch()!=sharedLNptr->periodicNext()->periodicPlanePatch())
-                        {// Junction is across boundary
-                            const auto netLink (sharedLNptr->next.second->networkLink());
-                            if(netLink)
+                            if (pPrevNetwork->sID < pNextNetwork->sID)
                             {
-                                std::set<size_t> netLinkLoopIDs (netLink->loopIDs());
-                                if (netLink->loopLinks().size()>=2)
+                                networkNodeLoopMap.emplace(std::make_pair(pPrevNetwork, pNextNetwork), tempLoops);
+                            }
+                            else
+                            {
+                                networkNodeLoopMap.emplace(std::make_pair(pNextNetwork, pPrevNetwork), tempLoops);
+                            }
+                        }
+                        
+                    }
+                }
+                else
+                {//Node not on a boundary: possible junction is between sharedLNptr and sharedLNptr->periodicNext()
+                    if (sharedLNptr->networkNode->loopNodes().size()>1)
+                    {// a junction node
+                        if (sharedLNptr->boundaryNext().size()==0 && sharedLNptr->periodicNext()->networkNode->loopNodes().size()>1)
+                        {
+                            if (sharedLNptr->periodicPlanePatch()!=sharedLNptr->periodicNext()->periodicPlanePatch())
+                            {// Junction is across boundary
+                                const auto netLink (sharedLNptr->next.second->networkLink());
+                                if(netLink)
                                 {
-                                    //a junction node moving out
-                                    if (sharedLNptr->networkNode->sID < sharedLNptr->periodicNext()->networkNode->sID)
+                                    std::set<size_t> netLinkLoopIDs (netLink->loopIDs());
+                                    if (netLink->loopLinks().size()>=2)
                                     {
-                                        networkNodeLoopMap.emplace(std::make_pair(sharedLNptr->networkNode, sharedLNptr->periodicNext()->networkNode), netLinkLoopIDs);
-                                    }
-                                    else
-                                    {
-                                        networkNodeLoopMap.emplace(std::make_pair(sharedLNptr->periodicNext()->networkNode,sharedLNptr->networkNode), netLinkLoopIDs);
+                                        //a junction node moving out
+                                        if (sharedLNptr->networkNode->sID < sharedLNptr->periodicNext()->networkNode->sID)
+                                        {
+                                            networkNodeLoopMap.emplace(std::make_pair(sharedLNptr->networkNode, sharedLNptr->periodicNext()->networkNode), netLinkLoopIDs);
+                                        }
+                                        else
+                                        {
+                                            networkNodeLoopMap.emplace(std::make_pair(sharedLNptr->periodicNext()->networkNode,sharedLNptr->networkNode), netLinkLoopIDs);
+                                        }
                                     }
                                 }
                             }

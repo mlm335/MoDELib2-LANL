@@ -95,9 +95,9 @@ namespace model
     template <int dim, short unsigned int corder>
     const DislocationLoopNode<dim,corder>* DislocationLoopNode<dim,corder>::periodicNext() const
     {
-         auto currentNext(this->next.first);
-        if (currentNext)
+        if (this->next.first)
         {
+            auto currentNext(this->next.first);
             while (currentNext->periodicPlaneEdge.first)
             {
                 if (currentNext == this)  //This if statement can return the current node as periodicNext. Discuss this with Dr. Po

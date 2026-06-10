@@ -1,0 +1,7 @@
+type=PrismaticLoop;
+style=individual;
+slipSystemIDs=3 3;
+loopRadii_SI=1e-7 1e-7; [m] loop radii
+glideSteps=0 100; # [b] distance from sessile loop (not important, used for debug)
+loopCenters=0 0 0
+            0 0 500;

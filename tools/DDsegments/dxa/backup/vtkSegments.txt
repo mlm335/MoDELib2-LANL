@@ -1,0 +1,11 @@
+materialFile=../../../tutorials/DislocationDynamics/MaterialsLibrary/Fe_320.txt;
+absoluteTemperature=300; #[K] simulation temperature
+quadPerLength=0.1; # number of quadrature points per unit length (e.g. 0.1 means 1 quadrature point over a length of 10 Burgers vectors)
+EwaldLengthFactor=1;
+ExternalStress0= 0.0 0.0110 0.0
+                0.0110 0.0 0.0
+                0.0 0.0 0.0;
+C2G=0.577350269189626 0.577350269189626 -0.577350269189626
+ 0.707106781186547 0.000000000000000 0.707106781186547
+ 0.408248290463863 -0.816496580927726 -0.408248290463863 ; # crystal rotation matrix
+

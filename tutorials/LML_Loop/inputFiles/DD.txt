@@ -8,21 +8,21 @@ useInclusions=0;
 useClusterDynamics=0;
 useClusterDynamicsFEM=1;
 useCracks=0;
-Nsteps=1000;		# total number of simulation steps
+Nsteps=300;		# total number of simulation steps
 startAtTimeStep = -1;  # time step for restart. -1 means last available step in file F/F_0.txt
 
 ######################################
-# Settings for simulationType=1 (finite sample with FEM)
-stepsBetweenBVPupdates = 1;
-use_directSolver_FEM=1;
-solverTolerance=1.0e-7;
+# Settings for ElasticDeformation
+stepsBetweenBVPupdates = 1; # frequency of FEM updates
+use_directSolver_FEM=1; # direct vs iterative solver
+solverTolerance=1.0e-7; # tolerance for iterative solver
 # Surface nucleation model (0=no nucleation)
 surfaceNucleationModel=0;
 
 ######################################
 # Settings for periodic simulations ()
-periodicImageSize=1 1 1; # 
-EwaldLengthFactor=1;
+periodicImageSize=8 8 8; # 
+EwaldLengthFactor=4;
 
 ######################################
 # Settings for fem simulations ()
@@ -32,8 +32,8 @@ inertiaReliefPenaltyFactor=1e-3;
 ######################################
 # TIME STEPPING
 timeSteppingMethod=fixed; # can be "fixed" or "fixed". dt=dtMax if timeIntegrationMethod=fixed. dt=min(dxMax/vMax,dtMax) if timeIntegrationMethod=fixed
-dtMax=2; # max DD time step 
-dxMax=1; # max nodal displacement in adaptive stepping
+dtMax=200; # max DD time step 
+dxMax=1.0; # max nodal displacement in adaptive stepping
 use_velocityFilter=0;
 velocityReductionFactor=0.75;
 use_stochasticForce=0;
@@ -46,7 +46,6 @@ subcyclingBins=1 2 5 10 50 100;
 glideSolverType=Galerkin; # type of glide solver (Galerkin or pybind11 or none)
 pyModuleName=../../../../../python/MLglideSolver.py; # relative path to Python module
 
-
 ######################################
 # CLIMB
 climbSolverType=none; # type of glide solver (none or none)
@@ -55,16 +54,17 @@ glideEquilibriumRate=1e-12; # climb rate threshold below which climb steps are t
 
 ######################################
 # DISLOCATION ELASTIC FIELDS
-quadPerLength=0.1; # number of quadrature points per unit length (in Burgers vector units)
+quadPerLength=0.0001; # number of quadrature points per unit length (in Burgers vector units)
 coreSize=2.0; # The dislocation core width, used in the non-singular expression of the dislocation stress field
-alphaLineTension=1; # dimensionless scale factor in for line tension forces
+alphaLineTension=0; # dimensionless scale factor in for line tension forces
 
 ######################################
 # NETWORK REMESHING
 remeshFrequency=1; # Enable/disable node redistribution 
-Lmin=10; # min segment length (in Burgers vector units)
-Lmax=15; # max segment length (in Burgers vector units)
+Lmin=30; # min segment length (in Burgers vector units)
+Lmax=50; # max segment length (in Burgers vector units)
 relativeAreaThreshold=0.001;
+absoluteAreaThreshold=0.0;
 
 ######################################
 # DISLOCATION JUNCTIONS
@@ -82,7 +82,7 @@ grainBoundaryTransmissionModel=0;
 ######################################
 # OUTPUT
 # Options for output files:
-outputFrequency=10;
+outputFrequency=1;
 outputBinary=0;
 computeElasticEnergyPerLength=0;
 outputMeshDisplacement=0;
@@ -91,10 +91,12 @@ outputQuadraturePoints=1;
 outputLinkingNumbers=0;
 outputLoopLength=0;
 outputPlasticDistortionPerSlipSystem=0;
+outputDislocationDensityPerSlipSystem=0;
 
 #####################################
 # DEBUGGING
-computeDDinteractions=1;
+computeDDinteractions=0;
+nodalVelocityConstraints=; # prohibited directions in each row
 verboseLoopNetwork=0;
 verboseDislocationNetwork=0;
 verboseDislocationLoop=0;

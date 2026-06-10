@@ -1,6 +1,6 @@
 
 # https://mcilloni.ovh/2021/02/09/cxx-cross-clang/
-# export LDFLAGS=-L/Library/Developer/CommandLineTools/SDKs/MacOSX15.4.sdk/usr/lib; LDFLAGS="$LDFLAGS -L/Library/Developer/CommandLineTools/SDKs/MacOSX15.4.sdk/usr/lib/system"
+# export LDFLAGS=-L/Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/lib; LDFLAGS="$LDFLAGS -L/Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/lib/system"
 # cmake .. -DCMAKE_CXX_COMPILER=clang++-mp-18 -DPython3_EXECUTABLE=/opt/local/bin/python3.11 -DPython_EXECUTABLE=/opt/local/bin/python3.11 -Dpybind11_DIR=$(/opt/local/bin/python3.11 -m pybind11 --cmakedir)
 
 cmake_minimum_required(VERSION 3.1.0)
@@ -16,8 +16,8 @@ list(APPEND CMAKE_BUILD_RPATH ${RPATH})
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-#set(CMAKE_CXX_FLAGS "-Wall -Wextra -march=native -fopenmp -O3 -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-parameter") # -Wno-class-memaccess
-set(CMAKE_C_FLAGS "-Wall -Wextra -march=native -Ofast -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-parameter")
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -march=native -fopenmp -O3 -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-parameter") # -Wno-class-memaccess
+# set(CMAKE_C_FLAGS "-Wall -Wextra -march=native -Ofast -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-parameter")
 
 #set(CMAKE_AUTOMOC ON)
 #set(CMAKE_AUTORCC ON)

@@ -20,6 +20,8 @@ namespace model
     /* init */,radiusDistributionStd_SI(0.0)
     /* init */,allowedGrainIDs({-1})
     /* init */,allowedSlipSystemIDs({-1})
+    /* init */,loopEFs(0.0)
+
     {
         
     }
@@ -32,6 +34,7 @@ namespace model
     /* init */,radiusDistributionStd_SI(targetDensity_SI>0.0? this->parser->readScalar<double>("radiusDistributionStd_SI",true) : 0.0)
     /* init */,allowedGrainIDs(this->parser->readArray<int>("allowedGrainIDs",true))
     /* init */,allowedSlipSystemIDs(this->parser->readArray<int>("allowedSlipSystemIDs",true))
+    /* init */,loopEFs(this->parser->readScalar<double>("loopEFs",true))
     {
         
     }

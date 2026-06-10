@@ -62,17 +62,17 @@ namespace model
         
         try
         {
+           pybind11::gil_scoped_acquire gil; // Acquire Thread
            pybind11::object mobilitySolver = pyModule.attr("MobilitySolver")();
            double qpPythonVelocity = mobilitySolver.attr("velocityPy")(stress, burgers, tangent, normal, temp, dL, dt).cast<double>();
-           return qpPythonVelocity/cs; //Convert from A/ps to code units
+        //    std::cout << "[C++] Py mobility velocity (m/s): " << qpPythonVelocity << std::endl;
+           return qpPythonVelocity/cs; //Convert from mps to code units
         }
         catch (const pybind11::error_already_set& e)
         {
            std::cerr << "Python error: " << e.what() << std::endl;
            std::terminate();
         }
-        
-
     }
 
 

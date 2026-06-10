@@ -52,11 +52,18 @@ using namespace model;
 typedef Eigen::Matrix<double,3,1> VectorDim;
 typedef Eigen::Matrix<double,3,3> MatrixDim;
 typedef GlidePlane<3> GlidePlaneType;
+
 typedef DislocationNetwork<3,0> DislocationNetworkType;
-typedef typename TypeTraits<DislocationNetworkType>::LoopNodeType LoopNodeType;
-typedef typename TypeTraits<DislocationNetworkType>::LoopType LoopType;
 typedef typename TypeTraits<DislocationNetworkType>::NetworkNodeType NetworkNodeType;
 typedef typename TypeTraits<DislocationNetworkType>::NetworkLinkType NetworkLinkType;
+
+typedef typename TypeTraits<DislocationNetworkType>::LoopType LoopType;
+typedef typename TypeTraits<DislocationNetworkType>::LoopNodeType LoopNodeType;
+typedef typename TypeTraits<DislocationNetworkType>::LoopLinkType LoopLinkType;
+
+
+
+typedef PeriodicPlaneEdge<3> PeriodicPlaneEdgeType;
 
 #ifdef _MODEL_PYBIND11_
 
@@ -65,14 +72,16 @@ PYBIND11_MAKE_OPAQUE(std::map<typename LoopType::KeyType,const std::weak_ptr<Loo
 PYBIND11_MAKE_OPAQUE(std::map<typename NetworkNodeType::KeyType,const std::weak_ptr<NetworkNodeType>>);
 PYBIND11_MAKE_OPAQUE(std::map<typename NetworkLinkType::KeyType,const std::weak_ptr<NetworkLinkType>>);
 PYBIND11_MAKE_OPAQUE(std::vector<MeshedDislocationLoop>);
-PYBIND11_MAKE_OPAQUE(GlidePlaneNoiseBase<1>); // opaque: pybind11 is not going to try to guess the data type for python
-PYBIND11_MAKE_OPAQUE(GlidePlaneNoiseBase<2>);
+// PYBIND11_MAKE_OPAQUE(GlidePlaneNoiseBase<1>); // opaque: pybind11 is not going to try to guess the data type for python
+// PYBIND11_MAKE_OPAQUE(GlidePlaneNoiseBase<2>);
 PYBIND11_MAKE_OPAQUE(std::map<std::pair<size_t,size_t>,DislocationSegmentIO<3>>);
 
 
-//PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<GlidePlaneBase>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<GlidePlaneBase>>);
 //PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<SlipSystem>>);
 //PYBIND11_MAKE_OPAQUE(std::map<size_t,std::shared_ptr<SecondPhase<3>>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<PeriodicPlaneEdgeType>>);
+
 
 PYBIND11_MAKE_OPAQUE(typename TypeTraits<SingleCrystalBase<3>>::PlaneNormalContainerType);
 PYBIND11_MAKE_OPAQUE(typename TypeTraits<SingleCrystalBase<3>>::SlipSystemContainerType);
@@ -83,6 +92,43 @@ PYBIND11_MAKE_OPAQUE(typename TypeTraits<SingleCrystalBase<3>>::SecondPhaseConta
 PYBIND11_MODULE(pyMoDELib,m)
 {
     namespace py=pybind11;
+
+    // STUFF I HAVE ADDED 
+    py::class_<PeriodicPlaneEdgeType, std::shared_ptr<PeriodicPlaneEdgeType>>(m, "PeriodicPlaneEdge")
+        .def_property_readonly("P0", [](const PeriodicPlaneEdgeType& e){ return e.meshIntersection->P0; })
+        .def_property_readonly("P1", [](const PeriodicPlaneEdgeType& e){ return e.meshIntersection->P1; })
+        .def_readonly("deltaShift", &PeriodicPlaneEdgeType::deltaShift)  // handy to have
+    ;
+
+    py::class_<GlidePlane<3>, std::shared_ptr<GlidePlane<3>>>(m, "GlidePlane")
+        .def_property_readonly("unitNormal", [](const GlidePlane<3>& gp){ return gp.unitNormal; })
+        .def("localPosition",  &GlidePlane<3>::localPosition)
+        .def("globalPosition", &GlidePlane<3>::globalPosition)
+        .def("key_tuple", [](const GlidePlane<3>& gp){
+            const auto& k = gp.key;
+            const auto r  = k.reciprocalDirectionComponents(); // 3 ints
+            // tuple = (h, k, l, layer, latticeID)
+            return py::make_tuple(static_cast<long>(r(0)),
+                                  static_cast<long>(r(1)),
+                                  static_cast<long>(r(2)),
+                                  static_cast<long>(k.planeIndex()),
+                                  static_cast<long>(k.latticeID()));
+        })
+        .def("meshSegments",
+            [](GlidePlane<3>& gp)
+            {   py::list out;
+                for(const auto& seg : gp.meshIntersections)
+                {
+                    out.append(py::make_tuple(seg->P0, seg->P1));
+                }
+                return out;
+            })
+    ;
+
+   // #################################################################################################### //
+
+
+
 
     py::class_<GlidePlaneNoiseBase<1>, std::shared_ptr<GlidePlaneNoiseBase<1>>>(m, "GlidePlaneNoiseBase1")
       .def(py::init<const std::string&, const int&,
@@ -257,7 +303,7 @@ PYBIND11_MODULE(pyMoDELib,m)
     ;
 
     py::class_<SlipSystem,std::shared_ptr<SlipSystem>>(m,"SlipSystem")
-//        .def(py::init<const GlidePlaneBase&,const RationalLatticeDirection<3>&,const std::shared_ptr<DislocationMobilityBase>&,const std::shared_ptr<GlidePlaneNoise>&>())
+    //    .def(py::init<const GlidePlaneBase&,const RationalLatticeDirection<3>&,const std::shared_ptr<DislocationMobilityBase>&,const std::shared_ptr<GlidePlaneNoise>&>())
         .def_readonly("unitNormal", &SlipSystem::unitNormal)
         .def_readonly("unitSlip", &SlipSystem::unitSlip)
     ;
@@ -315,6 +361,14 @@ PYBIND11_MODULE(pyMoDELib,m)
         .def_readonly("mesh", &DislocationDynamicsBase<3>::mesh)
         .def_readonly("poly", &DislocationDynamicsBase<3>::poly)
         .def_readonly("simulationParameters", &DislocationDynamicsBase<3>::simulationParameters)
+        .def("glidePlanes",
+        [](DislocationDynamicsBase<3>& ddb) {
+            std::vector<std::shared_ptr<GlidePlane<3>>> out;
+            for (const auto& kv : ddb.glidePlaneFactory.glidePlanes()) {
+                if (!kv.second.expired()) out.push_back(kv.second.lock());
+            }
+            return out;
+        })
     ;
     
     py::class_<MicrostructureBase<3>>(m,"MicrostructureBase")
@@ -365,6 +419,10 @@ PYBIND11_MODULE(pyMoDELib,m)
              const std::shared_ptr<GlidePlaneType>&>())
         .def("solidAngle",&LoopType::solidAngle)
         .def("meshed",&LoopType::meshed)
+        .def("burgers", &LoopType::burgers)
+        .def_readonly("glidePlane", &LoopType::glidePlane) 
+        .def_readonly("loopType", &LoopType::loopType) 
+        // .def("loopLinks", &LoopType::loopLinks)
     ;
     
     py::class_<MeshedDislocationLoop
@@ -388,6 +446,13 @@ PYBIND11_MODULE(pyMoDELib,m)
         .def("loops", static_cast<const WeakPtrFactory<DislocationNetworkType,LoopType>& (LoopNetwork<DislocationNetworkType>::*)()const>(&LoopNetwork<DislocationNetworkType>::loops),pybind11::return_value_policy::reference)
         .def("loopNodes", static_cast<const WeakPtrFactory<DislocationNetworkType,LoopNodeType>& (LoopNetwork<DislocationNetworkType>::*)()const>(&LoopNetwork<DislocationNetworkType>::loopNodes),pybind11::return_value_policy::reference)
     ;
+
+    // // Loop Link
+    // py::class_<LoopLinkType, std::shared_ptr<LoopLinkType>>(m, "LoopLink")
+    //     .def("networkLink", &LoopLinkType::networkLink, py::return_value_policy::reference)
+    //     .def_readonly("source", &LoopLinkType::source)
+    //     .def_readonly("sink", &LoopLinkType::sink)
+    // ;
 
     
     // Network Node and Network Link
@@ -415,6 +480,7 @@ PYBIND11_MODULE(pyMoDELib,m)
         .def("loopNodes", static_cast<const std::set<typename TypeTraits<DislocationNetworkType>::LoopNodeType*>& (NetworkNodeType::*)() const>(&NetworkNodeType::loopNodes))
         .def("gID", &NetworkNodeType::gID)
         .def("position", [](const NetworkNodeType& node) { return node.get_P(); })
+        .def("isBoundaryNode", &NetworkNodeType::isBoundaryNode)
     ;
 
     py::class_<DislocationNetworkType::NetworkLinkType, std::shared_ptr<DislocationNetworkType::NetworkLinkType>>(m, "NetworkLink")
@@ -422,12 +488,16 @@ PYBIND11_MODULE(pyMoDELib,m)
         .def_readonly("sink", &DislocationNetworkType::NetworkLinkType::sink)
         .def("loopIDs", &DislocationNetworkType::NetworkLinkType::loopIDs)
         .def("loops", &DislocationNetworkType::NetworkLinkType::loops)
+        .def("glidePlaneNormal", &DislocationNetworkType::NetworkLinkType::glidePlaneNormal)
         .def("burgers", &DislocationNetworkType::NetworkLinkType::burgers)
         .def("chord", &DislocationNetworkType::NetworkLinkType::chord)
         .def("slipSystem", &DislocationNetworkType::NetworkLinkType::slipSystem)
         .def("hasZeroBurgers", &DislocationNetworkType::NetworkLinkType::hasZeroBurgers)
         .def("isBoundarySegment", &DislocationNetworkType::NetworkLinkType::isBoundarySegment)
-        .def("isGrainBoundarySegment", &DislocationNetworkType::NetworkLinkType::isGrainBoundarySegment);
+        .def("isGrainBoundarySegment", &DislocationNetworkType::NetworkLinkType::isGrainBoundarySegment)
+        .def("isGlissile", &DislocationNetworkType::NetworkLinkType::isGlissile)
+        .def("isSessile",  &DislocationNetworkType::NetworkLinkType::isSessile)
+        .def("glidePlanes", &DislocationNetworkType::NetworkLinkType::glidePlanes);
     ;
     
     py::class_<DislocationNetworkType
@@ -436,6 +506,7 @@ PYBIND11_MODULE(pyMoDELib,m)
         .def(py::init<MicrostructureContainer<3>&>())
         .def("networkNodes", static_cast<const WeakPtrFactory<DislocationNetworkType, NetworkNodeType>& (DislocationNetworkType::*)() const>(&DislocationNetworkType::networkNodes), py::return_value_policy::reference)
         .def("networkLinks", static_cast<const WeakPtrFactory<DislocationNetworkType, NetworkLinkType>& (DislocationNetworkType::*)() const>(&DislocationNetworkType::networkLinks), py::return_value_policy::reference)
+        .def("networkLength", &DislocationNetworkType::networkLength)
     ;
     
 

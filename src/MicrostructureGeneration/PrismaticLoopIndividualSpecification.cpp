@@ -24,6 +24,7 @@ namespace model
     /* init */,loopRadii(this->parser->readArray<double>("loopRadii_SI",true))
     /* init */,loopCenters(this->parser->readMatrix<double>("loopCenters",slipSystemIDs.size(),3,true))
     /* init */,glideSteps(this->parser->readArray<double>("glideSteps",true))
+
     {
         
     }

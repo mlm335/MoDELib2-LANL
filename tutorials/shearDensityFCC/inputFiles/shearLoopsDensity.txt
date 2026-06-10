@@ -1,0 +1,8 @@
+type=ShearLoop;
+style=density;
+targetDensity_SI=3e13; # [m^-2] dislocation density
+radiusDistributionMean_SI=5e-08; [m] mean of loop radii
+radiusDistributionStd_SI=0.0; [m] std of loop radii
+numberOfSides=10; [-] number of sides in each loop polygon
+allowedGrainIDs=-1; # set of grain IDs where loops are allowed. Use -1 for all grains
+allowedSlipSystemIDs=-1; # set of slip system IDs whose Burgers vector are allowed to be the prism axis. Use -1 for all slip systems

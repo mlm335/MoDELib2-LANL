@@ -13,7 +13,7 @@ plt.rcParams['font.family'] = ['Times New Roman']
 plt.rcParams['text.usetex'] = True
 rc('text', usetex=True)
 rc('font', family='serif')
-sys.path.append('../../lib')
+sys.path.append('../lib')
 import pathlib
 from readF import *
 from readFile import *
@@ -40,14 +40,17 @@ def getQPData(folderName):
     tangent=[]
     velocity=[]
     position=[]
+    stress=[]
     n=0;
     for runID in F[:,0]:
         aux=readAUXtxt(folderName+'/evl/ddAux_'+str(int(runID)))
         tangent.append(aux.tangent);
         velocity.append(aux.velocity);
         position.append(aux.position)
+        stress.append(aux.stress)
+
         n=n+1;
-    return F[:,1], tangent, velocity, position;
+    return F[:,1], tangent, velocity, position, stress;
 ###########################################################################
 ###########################################################################
 ###########################################################################
@@ -64,6 +67,7 @@ for dataFolder in folders:
 
     # -- Material properties
     mat_filepath = dataFolder + '/inputFiles/Fe_320.txt'
+    print("Reading Material File:", mat_filepath)
     mu0_SI = get_scalar(mat_filepath, 'mu0_SI')
     rho_SI = get_scalar(mat_filepath, 'rho_SI')
     b_SI = get_scalar(mat_filepath, 'b_SI')
@@ -78,8 +82,9 @@ for dataFolder in folders:
 
     # -- Loop and Quadrature Point Data
     t, b = getLoopData(dataFolder)
-    t2, tangent, velocity, position = getQPData(dataFolder)
+    t2, tangent, velocity, position, stress = getQPData(dataFolder)
     
+    print("Stress", stress[0][0])
     # -- ElasticDeformation
     NormalDirection = np.array([1,0,1])
     Elastic_filepath = dataFolder + '/inputFiles/ElasticDeformation.txt'
@@ -118,10 +123,13 @@ for dataFolder in folders:
     average_velocity_lower = []
     for k in range(len(velocity)):  # Loop over time steps
         mid_index = len(velocity[k]) // 2
+        # print(f"Velocity of time step {k}",velocity[k])
         velocity_upper = velocity[k][:mid_index, :]  # First half (Upper)
         velocity_lower = velocity[k][mid_index:, :]  # Second half (Lower)
-        avg_upper = np.mean(np.linalg.norm(velocity_upper, axis=1)) * v_dd2SI / 100
-        avg_lower = np.mean(np.linalg.norm(velocity_lower, axis=1)) * v_dd2SI / 100
+        # print(velocity_upper, velocity_lower)
+        avg_upper = np.mean(np.linalg.norm(velocity_upper, axis=1)) 
+        avg_lower = np.mean(np.linalg.norm(velocity_lower, axis=1)) 
+        # print(f"Average Velocity of time step {k}", avg_upper, avg_lower)
         average_velocity_upper.append(avg_upper)
         average_velocity_lower.append(avg_lower)
     TimeAverageVelocityUpper = np.round(np.mean(average_velocity_upper), 4)

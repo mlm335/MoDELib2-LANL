@@ -50,7 +50,7 @@ namespace model
     std::string DDqtVTKwidget::getWorkingDir() 
     {
         return QFileDialog::getExistingDirectory(this, tr("Open Directory"),
-                                                             "/Users/matthewmaron/Documents/MoDELib2/tutorials/",
+                                                             "/Users/matthewmaron/Documents/MoDELib2-LANL/tutorials/",
                                                              QFileDialog::ShowDirsOnly
                                                              | QFileDialog::DontUseNativeDialog ).toStdString();
 

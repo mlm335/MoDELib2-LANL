@@ -147,7 +147,8 @@ namespace model
         
         if(parentSegment.slipSystem())
         {
-            VectorDim n(parentSegment.glidePlaneNormal()); // plane normal
+            // VectorDim n(parentSegment.glidePlaneNormal()); // plane normal
+            VectorDim n(parentSegment.slipSystem()->unitNormal); // plane normal
             VectorDim b(parentSegment.burgers()); // Burgers vector
             VectorDim t(rl);            // tangent vector
             
@@ -201,7 +202,7 @@ namespace model
                 }
                 
                 assert((parentSegment.network().stochasticForceGenerator || v>= 0.0) && "Velocity must be a positive scalar");
-                const bool useNonLinearVelocity=true;
+                const bool useNonLinearVelocity=false;
                 if(useNonLinearVelocity && v>FLT_EPSILON && !parentSegment.network().stochasticForceGenerator)
                 {
                     v= 1.0-std::exp(-v);

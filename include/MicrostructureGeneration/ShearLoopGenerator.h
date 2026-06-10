@@ -51,7 +51,7 @@ namespace model
     {
         typedef Eigen::Matrix<double,3,1> VectorDimD;
         
-        static bool generateSingle(MicrostructureGenerator& mg,const int& rSS,const VectorDimD& dipolePoint,const double& radius,const size_t& sides);
+        static bool generateSingle(MicrostructureGenerator& mg,const int& rSS,const VectorDimD& dipolePoint,const double& radius,const size_t& sides, const double& ef);
 //        void generateIndividual(MicrostructureGenerator& mg);
 //        void generateDensity(MicrostructureGenerator& mg);
         
